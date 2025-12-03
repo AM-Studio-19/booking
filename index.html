@@ -186,10 +186,27 @@
       const [bookedSlots, setBookedSlots] = useState([]); 
       const [locationSettings, setLocationSettings] = useState({});
       const [adminPinInput, setAdminPinInput] = useState('');
+      const [liffStatus, setLiffStatus] = useState('初始化中...'); // 新增狀態顯示
 
       useEffect(() => {
-        auth.signInAnonymously().catch(err => console.warn("Auth warning:", err));
-        if (window.liff) window.liff.init({ liffId: LIFF_ID }).catch(e => console.log('Liff init error', e));
+        const init = async () => {
+            try {
+                await auth.signInAnonymously();
+                if (window.liff) {
+                    await window.liff.init({ liffId: LIFF_ID });
+                    if (!window.liff.isLoggedIn()) {
+                        setLiffStatus('未登入 LINE');
+                        window.liff.login();
+                    } else {
+                        setLiffStatus('LINE 已登入');
+                    }
+                }
+            } catch (e) {
+                console.error("Init Error", e);
+                setLiffStatus('系統初始化錯誤: ' + e.message);
+            }
+        };
+        init();
         return auth.onAuthStateChanged(setUser);
       }, []);
 
@@ -237,12 +254,11 @@
           time: finalTime, customerName: customerInfo.name,
           customerPhone: customerInfo.phone, notes: customerInfo.notes,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid,
-          status: 'pending', // 預設狀態: 待確認
-          msgSent: false     // 預設: 訊息未送出
+          status: 'pending', msgSent: false
         };
         
         try {
-          // 1. 先確保資料庫寫入成功
+          // 1. 寫入資料庫
           const docRef = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(data);
           
           // 2. 準備訊息
@@ -256,20 +272,23 @@
             `📝 備註：${data.customerInfo?.notes || '無'}`;
             
           let msgSent = false;
-          // 3. 嘗試發送訊息 (包在 try-catch 中，避免失敗影響預約流程)
+          // 3. 嘗試發送訊息
           if (window.liff?.isInClient()) {
               try {
                   await window.liff.sendMessages([{ type: 'text', text: msg }]);
                   msgSent = true;
-                  // 更新資料庫狀態為已送出訊息
                   await docRef.update({ msgSent: true, status: 'confirmed' });
               } catch (msgErr) {
-                  console.warn("LINE 訊息傳送失敗 (可能是權限未開):", msgErr);
+                  console.warn("LINE 訊息傳送失敗:", msgErr);
+                  alert(`訊息發送失敗 (代碼: ${msgErr.code})。\n請確認您已在 LINE 設定解除舊的連動並重新授權。\n\n即使未自動傳送，您的預約已記錄在系統中。`);
               }
           }
           
           if (!msgSent) {
-              alert("✅ 預約已成功！\n\n(但因 LIFF 權限未開或在外部瀏覽器，無法自動傳訊)\n\n請您手動複製下方資料給我們確認：\n\n" + msg);
+              // 提醒手動複製，但不影響流程
+              if (!window.liff?.isInClient()) {
+                  alert("✅ 預約已成功！\n\n(因在外部瀏覽器開啟，請您手動複製下方文字傳送給我們確認)\n\n" + msg);
+              }
           }
           setBookingStep(5);
         } catch (e) { 
@@ -312,6 +331,7 @@
                     </button>
                   ))}
                 </div>
+                <div className="mt-8 text-xs text-gray-400">LIFF 狀態: {liffStatus}</div>
              </div>
           </div>
         );
