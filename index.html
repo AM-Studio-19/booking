@@ -17,12 +17,12 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 
-  <!-- 1. 核心程式庫 (加上 crossorigin 以顯示真實錯誤) -->
+  <!-- 1. 核心程式庫 -->
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   
-  <!-- 2. Firebase (加上 crossorigin) -->
+  <!-- 2. Firebase -->
   <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -65,7 +65,7 @@
     const { useState, useEffect } = React;
     
     // ==========================================
-    // ⬇️ 請在此小心填入 Firebase 設定 ⬇️
+    // ⬇️ Firebase 設定 ⬇️
     // ==========================================
     const rawFirebaseConfig = {
       apiKey: "AIzaSyCzCXFgd7VrWHyHrM3GILQ2JHzQaa7yoIw",
@@ -86,28 +86,23 @@
     let initError = null;
 
     try {
-        // 1. 檢查是否有填寫設定
         if (rawFirebaseConfig.apiKey === "請填入您的apiKey") {
             throw new Error("請開啟 index.html 檔案，填入正確的 Firebase Config 金鑰！");
         }
-
-        // 2. 自動修復全形引號 (防止複製貼上錯誤)
+        // 防止複製貼上錯誤
         const config = {};
         for (let key in rawFirebaseConfig) {
             let val = rawFirebaseConfig[key];
-            // 移除前後空白
             if (typeof val === 'string') val = val.trim(); 
             config[key] = val;
         }
 
-        // 3. 初始化 Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(config);
         }
         db = firebase.firestore();
         auth = firebase.auth();
-        
-        console.log("Firebase initialized successfully");
+        console.log("Firebase initialized");
 
     } catch (e) {
         initError = e.message;
@@ -121,12 +116,13 @@
       </svg>
     );
 
-    // 預先定義好 SVG 內容，避免 JSX 解析錯誤
+    // ⚠️ 修復：確保所有多路徑圖示都用 <>...</> 包覆
     const SvgPaths = {
         map: <><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>,
         right: <path d="m9 18 6-6-6-6"/>,
         left: <path d="m15 18-6-6 6-6"/>,
-        settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>,
+        // ⬇️ 這裡修正了：加上 <>...</> 包覆
+        settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>,
         clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
         user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
         phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>,
@@ -142,7 +138,6 @@
     const DISCOUNT_NOTE = "※ 優惠身分包含：學生、醫護、軍公教、當月壽星、舊客介紹 (請於現場出示證明)";
 
     function AppointmentApp() {
-      // 顯示初始化錯誤
       if (initError) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
@@ -157,7 +152,6 @@
       const [view, setView] = useState('home'); 
       const [bookingStep, setBookingStep] = useState(1);
       
-      // Data States
       const [selectedLocation, setSelectedLocation] = useState(null);
       const [selectedService, setSelectedService] = useState(null);
       const [selectedAddons, setSelectedAddons] = useState([]);
@@ -171,57 +165,33 @@
       const [adminPinInput, setAdminPinInput] = useState('');
 
       useEffect(() => {
-        // 嘗試登入
-        auth.signInAnonymously().catch(err => {
-            console.warn("Auth warning:", err);
-            // 不阻擋，可能只是網路慢
-        });
-
-        // LIFF 初始化
-        if (window.liff) {
-            window.liff.init({ liffId: LIFF_ID }).catch(e => console.log('Liff init skipped (not in Line)', e));
-        }
-
-        // 監聽 Auth
+        auth.signInAnonymously().catch(err => console.warn("Auth warning:", err));
+        if (window.liff) window.liff.init({ liffId: LIFF_ID }).catch(e => console.log('Liff init skipped', e));
         return auth.onAuthStateChanged(u => {
             setUser(u);
             if(u) console.log("User logged in:", u.uid);
         });
       }, []);
 
-      // 監聽資料
       useEffect(() => {
         if (!user) return;
-        
         const dataRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
-        
-        // 讀取服務 (加強錯誤處理)
         dataRef.collection('services').orderBy('name').onSnapshot(
             snap => setServices(snap.docs.map(d => ({id:d.id, ...d.data()}))),
             err => console.error("Service fetch error", err)
         );
-
-        // 讀取設定
         dataRef.collection('settings').onSnapshot(
-            snap => {
-                const s = {}; 
-                snap.forEach(d => s[d.id] = d.data());
-                setLocationSettings(s);
-            },
+            snap => { const s = {}; snap.forEach(d => s[d.id] = d.data()); setLocationSettings(s); },
             err => console.error("Settings fetch error", err)
         );
-
       }, [user]);
 
-      // 讀取已預約時段
       useEffect(() => {
         if (!user || !selectedLocation || !selectedDate) return;
-        
         const dateStr = selectedDate.toISOString().split('T')[0];
         const q = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
           .where('locationId', '==', selectedLocation.id)
           .where('date', '==', dateStr);
-        
         const unsub = q.onSnapshot(
             snap => setBookedSlots(snap.docs.map(d => d.data().time)),
             err => console.error("Booking fetch error", err)
@@ -229,7 +199,6 @@
         return () => unsub();
       }, [user, selectedLocation, selectedDate]);
 
-      // Logic Checkers
       const isDateAvailable = (date) => {
         if (!selectedLocation) return true;
         const settings = locationSettings[selectedLocation.id];
@@ -246,31 +215,18 @@
 
       const handleSubmit = async () => {
         if (!user) return alert("系統連線中，請稍後再試...");
-        
         const data = {
-          locationId: selectedLocation.id,
-          locationName: selectedLocation.name,
-          serviceId: selectedService.id,
-          serviceName: selectedService.name,
-          addons: selectedAddons, // 雖然 UI 沒顯示，但保留欄位
-          date: selectedDate.toISOString().split('T')[0],
-          time: selectedTime,
-          customerName: customerInfo.name,
-          customerPhone: customerInfo.phone,
-          notes: customerInfo.notes,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          userId: user.uid
+          locationId: selectedLocation.id, locationName: selectedLocation.name,
+          serviceId: selectedService.id, serviceName: selectedService.name,
+          addons: selectedAddons, date: selectedDate.toISOString().split('T')[0],
+          time: selectedTime, customerName: customerInfo.name,
+          customerPhone: customerInfo.phone, notes: customerInfo.notes,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
         };
-
         try {
           await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(data);
-          
-          // LIFF Message
           const msg = `【預約通知】\n🏠 ${data.locationName}\n📅 ${data.date} ${data.time}\n💆 ${data.serviceName}\n👤 ${data.customerName}\n📱 ${data.customerPhone}`;
-          if (window.liff?.isInClient()) {
-              await window.liff.sendMessages([{ type: 'text', text: msg }]);
-          }
-          
+          if (window.liff?.isInClient()) await window.liff.sendMessages([{ type: 'text', text: msg }]);
           setBookingStep(5);
         } catch (e) {
           alert('預約失敗: ' + e.message);
@@ -282,8 +238,6 @@
         setBookingStep(1); setSelectedLocation(null); setSelectedService(null);
         setSelectedTime(null); setCustomerInfo({name:'',phone:'',notes:''}); setView('home');
       };
-
-      // --- Views ---
 
       if (view === 'admin-login') {
         return (
@@ -328,7 +282,6 @@
         );
       }
 
-      // Booking UI
       return (
         <div className="min-h-screen py-6 px-4 bg-[#f4f1ea]">
           <div className="max-w-lg mx-auto bg-[#fdfbf7] min-h-[85vh] rounded-sm shadow-xl border border-[#e8e4dc] flex flex-col">
@@ -339,7 +292,6 @@
             </div>
             <div className="flex-1 p-6 overflow-y-auto">
               
-              {/* Step 2: Service */}
               {bookingStep===2 && (
                 <div className="space-y-6">
                   <div className="bg-[#efebe9]/50 p-4 rounded text-xs text-[#6d4c41] flex gap-2"><span className="mt-0.5"><Icon path={SvgPaths.info} size={16}/></span>{DISCOUNT_NOTE}</div>
@@ -357,7 +309,6 @@
                 </div>
               )}
 
-              {/* Step 3: Date & Time */}
               {bookingStep===3 && (
                  <div className="space-y-6">
                    <div className="bg-white p-4 rounded border shadow-sm">
@@ -389,7 +340,6 @@
                  </div>
               )}
 
-              {/* Step 4: Info */}
               {bookingStep===4 && (
                 <div className="space-y-4">
                   <div className="bg-[#efebe9] p-4 rounded text-sm space-y-2 border border-[#d7ccc8]">
@@ -403,7 +353,6 @@
                 </div>
               )}
 
-              {/* Step 5: Success */}
               {bookingStep===5 && (
                 <div className="text-center py-10">
                   <div className="text-green-600 mb-4 flex justify-center"><Icon path={SvgPaths.check} size={48}/></div>
