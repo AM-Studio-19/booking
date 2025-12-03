@@ -72,7 +72,8 @@
       appId: "1:197698776484:web:818beeea66d470bfc36531"
     };
 
-    const LIFF_ID = '2008567948-rNVLPLYb';
+    // ⬇️ 這裡修正為您截圖中的正確 ID
+    const LIFF_ID = '2008567948-KGMPJPGe';
     const APP_ID = 'booking-system-web';
     const ADMIN_PIN = '1234';
 
@@ -186,24 +187,27 @@
       const [bookedSlots, setBookedSlots] = useState([]); 
       const [locationSettings, setLocationSettings] = useState({});
       const [adminPinInput, setAdminPinInput] = useState('');
-      const [liffStatus, setLiffStatus] = useState('初始化中...'); // 新增狀態顯示
+      const [liffStatus, setLiffStatus] = useState('初始化中...'); 
 
       useEffect(() => {
         const init = async () => {
             try {
+                // 先 Firebase 匿名登入
                 await auth.signInAnonymously();
+                
+                // 再初始化 LIFF
                 if (window.liff) {
                     await window.liff.init({ liffId: LIFF_ID });
                     if (!window.liff.isLoggedIn()) {
-                        setLiffStatus('未登入 LINE');
+                        setLiffStatus('未登入 LINE，跳轉中...');
                         window.liff.login();
                     } else {
-                        setLiffStatus('LINE 已登入');
+                        setLiffStatus('LINE 已登入 (OK)');
                     }
                 }
             } catch (e) {
                 console.error("Init Error", e);
-                setLiffStatus('系統初始化錯誤: ' + e.message);
+                setLiffStatus('初始化錯誤: ' + e.message);
             }
         };
         init();
@@ -280,12 +284,11 @@
                   await docRef.update({ msgSent: true, status: 'confirmed' });
               } catch (msgErr) {
                   console.warn("LINE 訊息傳送失敗:", msgErr);
-                  alert(`訊息發送失敗 (代碼: ${msgErr.code})。\n請確認您已在 LINE 設定解除舊的連動並重新授權。\n\n即使未自動傳送，您的預約已記錄在系統中。`);
+                  alert(`訊息發送失敗: ${msgErr.message}\n(但預約資料已成功儲存)`);
               }
           }
           
           if (!msgSent) {
-              // 提醒手動複製，但不影響流程
               if (!window.liff?.isInClient()) {
                   alert("✅ 預約已成功！\n\n(因在外部瀏覽器開啟，請您手動複製下方文字傳送給我們確認)\n\n" + msg);
               }
@@ -331,7 +334,7 @@
                     </button>
                   ))}
                 </div>
-                <div className="mt-8 text-xs text-gray-400">LIFF 狀態: {liffStatus}</div>
+                <div className="mt-8 text-xs text-gray-400">LIFF 連線: {liffStatus}</div>
              </div>
           </div>
         );
