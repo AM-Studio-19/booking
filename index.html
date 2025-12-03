@@ -112,7 +112,8 @@
         trash: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>,
         plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
         info: <><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></>,
-        calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>
+        calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+        copy: <><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>
     };
 
     const LOCATIONS = [{ id: 'tainan', name: '台南工作室' }, { id: 'kaohsiung', name: '高雄工作室' }];
@@ -235,21 +236,24 @@
           addons: selectedAddons, date: selectedDate.toISOString().split('T')[0],
           time: finalTime, customerName: customerInfo.name,
           customerPhone: customerInfo.phone, notes: customerInfo.notes,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid,
+          status: 'pending', // 預設狀態: 待確認
+          msgSent: false     // 預設: 訊息未送出
         };
         
         try {
           // 1. 先確保資料庫寫入成功
-          await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(data);
+          const docRef = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(data);
           
           // 2. 準備訊息
           const msg = `【預約通知】\n` +
-            `🏠 ${data.locationName}\n` +
-            `📅 ${data.date} ${data.time}\n` +
-            `💆 ${data.serviceName}\n` +
+            `🏠 地點：${data.locationName}\n` +
+            `📅 時間：${data.date} ${data.time}\n` +
+            `💆 項目：${data.serviceName}\n` +
             `➕ 加購：${addonsText}\n` +
-            `👤 ${data.customerName}\n` +
-            `📱 ${data.customerPhone}`;
+            `👤 姓名：${data.customerName}\n` +
+            `📱 電話：${data.customerPhone}\n` +
+            `📝 備註：${data.customerInfo?.notes || '無'}`;
             
           let msgSent = false;
           // 3. 嘗試發送訊息 (包在 try-catch 中，避免失敗影響預約流程)
@@ -257,6 +261,8 @@
               try {
                   await window.liff.sendMessages([{ type: 'text', text: msg }]);
                   msgSent = true;
+                  // 更新資料庫狀態為已送出訊息
+                  await docRef.update({ msgSent: true, status: 'confirmed' });
               } catch (msgErr) {
                   console.warn("LINE 訊息傳送失敗 (可能是權限未開):", msgErr);
               }
@@ -446,10 +452,22 @@
             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add({
                 locationId: mLoc, locationName: locName, serviceId: mSvc, serviceName: svcName,
                 date: mDate, time: mTime, customerName: mName, customerPhone: mPhone,
-                notes: '後台手動新增', createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
+                notes: '後台手動新增', createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid,
+                status: 'confirmed', msgSent: true
             });
             alert('新增成功！'); setShowManual(false); setMName(''); setMPhone('');
         } catch(e) { alert('失敗: '+e.message); }
+      };
+
+      const toggleStatus = async (b) => {
+          const newStatus = b.status === 'confirmed' ? 'pending' : 'confirmed';
+          await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({status: newStatus});
+      };
+
+      const copyMsg = (b) => {
+          const addStr = b.addons && b.addons.length > 0 ? b.addons.map(a=>a.name).join(',') : '無';
+          const txt = `【預約確認通知】\n親愛的 ${b.customerName} 您好，已為您安排：\n🏠 地點：${b.locationName}\n📅 時間：${b.date} ${b.time}\n💆 項目：${b.serviceName}\n➕ 加購：${addStr}\n\n期待您的光臨！`;
+          navigator.clipboard.writeText(txt).then(()=>alert('訊息已複製！請貼上給顧客')).catch(()=>alert('複製失敗，請手動選取複製'));
       };
 
       return (
@@ -470,7 +488,32 @@
                {tab==='book' && (
                  <div>
                     <button onClick={()=>setShowManual(true)} className="mb-4 bg-[#8d6e63] text-white px-4 py-2 rounded text-sm flex items-center gap-2"><Icon path={SvgPaths.plus} size={16}/>手動新增預約</button>
-                    <div className="space-y-2">{books.map(b=><div key={b.id} className="border-b p-2 text-sm flex justify-between"><div><div className="font-bold text-[#8d6e63]">{b.date} {b.time} <span className="text-xs bg-gray-200 px-1 rounded">{b.locationName}</span></div><div>{b.serviceName} {b.addons?.length > 0 && `(+${b.addons.length})`} - {b.customerName}</div></div><button onClick={()=>confirm('刪除預約?')&&db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-400"><Icon path={SvgPaths.trash} size={16}/></button></div>)}</div>
+                    <div className="space-y-3">
+                        {books.map(b=>(
+                            <div key={b.id} className={`border rounded p-3 text-sm flex flex-col gap-2 ${b.status==='confirmed'?'bg-green-50 border-green-200':'bg-white'}`}>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="font-bold text-lg text-[#8d6e63]">
+                                            {b.date} {b.time} 
+                                            <span className={`text-xs ml-2 px-2 py-0.5 rounded ${b.status==='confirmed'?'bg-green-600 text-white':'bg-yellow-400 text-yellow-900'}`}>{b.status==='confirmed'?'已確認':'待確認'}</span>
+                                            {!b.msgSent && <span className="text-xs ml-1 text-red-500">(未傳訊)</span>}
+                                        </div>
+                                        <div className="text-gray-600">{b.locationName} • {b.serviceName} {b.addons?.length > 0 && `(+${b.addons.length})`}</div>
+                                        <div className="font-bold">{b.customerName} <span className="font-normal text-gray-500">{b.customerPhone}</span></div>
+                                    </div>
+                                    <button onClick={()=>confirm('刪除預約?')&&db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-400 p-2"><Icon path={SvgPaths.trash} size={18}/></button>
+                                </div>
+                                <div className="flex gap-2 mt-2 border-t pt-2">
+                                    <button onClick={()=>toggleStatus(b)} className={`flex-1 py-1 rounded text-xs ${b.status==='confirmed'?'bg-gray-200 text-gray-600':'bg-green-600 text-white'}`}>
+                                        {b.status==='confirmed'?'取消確認':'✅ 確認預約'}
+                                    </button>
+                                    <button onClick={()=>copyMsg(b)} className="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-1 rounded text-xs flex items-center justify-center gap-1">
+                                        <Icon path={SvgPaths.copy} size={14}/> 複製確認文
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                     {showManual && (
                         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                             <div className="bg-white p-6 rounded shadow-lg w-full max-w-sm">
