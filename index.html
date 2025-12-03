@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>線上預約系統</title>
   
+  <!-- 樣式 -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -14,105 +15,126 @@
       width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #debug-console {
-        position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: #fff;
-        padding: 10px; font-size: 12px; max-height: 150px; overflow-y: auto; z-index: 9999; display: none;
-    }
   </style>
 
-  <!-- 核心程式庫 -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- 1. 核心程式庫 (加上 crossorigin 以顯示真實錯誤) -->
+  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  
+  <!-- 2. Firebase (加上 crossorigin) -->
+  <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <!-- 3. LIFF -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   
   <div id="root">
     <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8d6e63;">
       <div class="spinner"></div>
-      <p>系統啟動中...</p>
+      <p id="loading-text">系統啟動中...</p>
     </div>
   </div>
 
-  <!-- 錯誤顯示器 (Debug Console) -->
-  <div id="error-display" style="display:none; position:fixed; top:0; left:0; right:0; padding:20px; background:#fee2e2; color:#991b1b; border-bottom:2px solid #ef4444; z-index:9999;">
-    <h3 style="font-weight:bold; margin-bottom:5px;">⚠️ 發生錯誤</h3>
-    <pre id="error-text" style="white-space:pre-wrap; font-size:12px;"></pre>
-    <button onclick="location.reload()" style="margin-top:10px; padding:5px 10px; background:#fff; border:1px solid #991b1b;">重新整理</button>
+  <!-- 錯誤顯示區 -->
+  <div id="error-box" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; padding:20px; text-align:center;">
+    <div style="max-width:500px; margin:50px auto; border:2px solid #ef4444; padding:20px; background:#fff; border-radius:8px;">
+        <h2 style="color:#ef4444; font-size:24px; margin-bottom:10px;">⚠️ 發生錯誤</h2>
+        <p id="error-msg" style="color:#333; margin-bottom:20px; word-break:break-all;"></p>
+        <p style="font-size:12px; color:#666;">請截圖此畫面傳送給技術人員</p>
+        <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#8d6e63; color:white; border:none; border-radius:4px;">重新整理</button>
+    </div>
   </div>
 
   <script>
-    // 全域錯誤攔截
-    window.onerror = function(msg, url, line) {
-        document.getElementById('root').style.display = 'none';
-        document.getElementById('error-display').style.display = 'block';
-        document.getElementById('error-text').innerText = `Error: ${msg}\nLine: ${line}\nURL: ${url}`;
-        return false;
+    // 全域錯誤捕捉
+    window.onerror = function(msg, url, line, col, error) {
+      document.getElementById('root').style.display = 'none';
+      document.getElementById('error-box').style.display = 'block';
+      let cleanMsg = msg;
+      if (msg.includes("Script error")) cleanMsg = "瀏覽器阻擋了程式碼載入，通常是 Firebase 設定有誤或網路問題。";
+      document.getElementById('error-msg').innerHTML = `<strong>原因：</strong>${cleanMsg}<br><br><small>(${url}:${line})</small>`;
+      return false;
     };
   </script>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
     
-    // ------------------------------------------------------------------
-    // ⚠️⚠️⚠️ 請在此填入您的 Firebase 設定 (這是最重要的一步) ⚠️⚠️⚠️
-    // ------------------------------------------------------------------
-    const firebaseConfig = {
+    // ==========================================
+    // ⬇️ 請在此小心填入 Firebase 設定 ⬇️
+    // ==========================================
+    const rawFirebaseConfig = {
       apiKey: "AIzaSyCzCXFgd7VrWHyHrM3GILQ2JHzQaa7yoIw",
       authDomain: "amstudio-booking.firebaseapp.com",
       projectId: "amstudio-booking",
       storageBucket: "amstudio-booking.firebasestorage.app",
       messagingSenderId: "197698776484",
-       appId: "1:197698776484:web:818beeea66d470bfc36531"
+      appId: "1:197698776484:web:818beeea66d470bfc36531"
     };
-    // ------------------------------------------------------------------
+    // ==========================================
 
     const LIFF_ID = '2008567948-rNVLPLYb';
     const APP_ID = 'booking-system-web';
     const ADMIN_PIN = '1234';
 
-    // 初始化 Firebase
+    // --- 系統初始化與檢查 ---
     let db, auth;
-    let isConfigValid = firebaseConfig.apiKey !== "請填入您的apiKey";
+    let initError = null;
 
-    if (isConfigValid) {
-        try {
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            auth = firebase.auth();
-        } catch (e) {
-            console.error(e);
-            document.getElementById('error-text').innerText = "Firebase 初始化失敗: " + e.message;
-            document.getElementById('error-display').style.display = 'block';
+    try {
+        // 1. 檢查是否有填寫設定
+        if (rawFirebaseConfig.apiKey === "請填入您的apiKey") {
+            throw new Error("請開啟 index.html 檔案，填入正確的 Firebase Config 金鑰！");
         }
+
+        // 2. 自動修復全形引號 (防止複製貼上錯誤)
+        const config = {};
+        for (let key in rawFirebaseConfig) {
+            let val = rawFirebaseConfig[key];
+            // 移除前後空白
+            if (typeof val === 'string') val = val.trim(); 
+            config[key] = val;
+        }
+
+        // 3. 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(config);
+        }
+        db = firebase.firestore();
+        auth = firebase.auth();
+        
+        console.log("Firebase initialized successfully");
+
+    } catch (e) {
+        initError = e.message;
+        console.error("Init Error", e);
     }
 
-    // --- 元件區 ---
+    // --- 圖示組件 ---
     const Icon = ({ path, size = 24 }) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         {path}
       </svg>
     );
-    // 簡化圖示定義以避免語法錯誤
-    const Icons = {
-      MapPin: <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>,
-      ChevronRight: <path d="m9 18 6-6-6-6"/>,
-      ChevronLeft: <path d="m15 18-6-6 6-6"/>,
-      Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>,
-      Clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-      User: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
-      Phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>,
-      FileText: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></>,
-      CheckCircle: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
-      Trash2: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>,
-      Plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
-      Info: <><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></>
+
+    // 預先定義好 SVG 內容，避免 JSX 解析錯誤
+    const SvgPaths = {
+        map: <><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>,
+        right: <path d="m9 18 6-6-6-6"/>,
+        left: <path d="m15 18-6-6 6-6"/>,
+        settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>,
+        clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+        user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+        phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>,
+        file: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></>,
+        check: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
+        trash: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>,
+        plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
+        info: <><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></>
     };
 
     const LOCATIONS = [{ id: 'tainan', name: '台南工作室' }, { id: 'kaohsiung', name: '高雄工作室' }];
@@ -120,14 +142,13 @@
     const DISCOUNT_NOTE = "※ 優惠身分包含：學生、醫護、軍公教、當月壽星、舊客介紹 (請於現場出示證明)";
 
     function AppointmentApp() {
-      // 如果設定無效，顯示警告
-      if (!isConfigValid) {
+      // 顯示初始化錯誤
+      if (initError) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
                 <div className="text-4xl mb-4">⚠️</div>
-                <h1 className="text-xl font-bold text-red-600 mb-2">尚未設定資料庫</h1>
-                <p className="text-gray-600 mb-2">請使用電腦文字編輯器開啟 <code>index.html</code></p>
-                <p className="text-gray-600">搜尋 <code>const firebaseConfig</code> 並填入您的設定。</p>
+                <h1 className="text-xl font-bold text-red-600 mb-2">設定錯誤</h1>
+                <p className="text-gray-800">{initError}</p>
             </div>
         );
       }
@@ -135,6 +156,8 @@
       const [user, setUser] = useState(null);
       const [view, setView] = useState('home'); 
       const [bookingStep, setBookingStep] = useState(1);
+      
+      // Data States
       const [selectedLocation, setSelectedLocation] = useState(null);
       const [selectedService, setSelectedService] = useState(null);
       const [selectedAddons, setSelectedAddons] = useState([]);
@@ -143,57 +166,76 @@
       const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', notes: '' });
       
       const [services, setServices] = useState([]);
-      const [addons, setAddons] = useState([]);
       const [bookedSlots, setBookedSlots] = useState([]); 
       const [locationSettings, setLocationSettings] = useState({});
       const [adminPinInput, setAdminPinInput] = useState('');
 
       useEffect(() => {
-        // 安全登入，若失敗顯示錯誤但不 crash
+        // 嘗試登入
         auth.signInAnonymously().catch(err => {
-            console.error("Auth Error", err);
-            // 這裡不阻擋，因為後台可能只需要讀取
+            console.warn("Auth warning:", err);
+            // 不阻擋，可能只是網路慢
         });
-        if (window.liff) window.liff.init({ liffId: LIFF_ID }).catch(e => console.log('Liff init fail', e));
-        return auth.onAuthStateChanged(setUser);
+
+        // LIFF 初始化
+        if (window.liff) {
+            window.liff.init({ liffId: LIFF_ID }).catch(e => console.log('Liff init skipped (not in Line)', e));
+        }
+
+        // 監聽 Auth
+        return auth.onAuthStateChanged(u => {
+            setUser(u);
+            if(u) console.log("User logged in:", u.uid);
+        });
       }, []);
 
-      // 監聽資料，增加錯誤處理以免白畫面
+      // 監聽資料
       useEffect(() => {
         if (!user) return;
-        const safeSnap = (ref, setter) => ref.onSnapshot(
-            snap => setter(snap.docs.map(d => ({id:d.id, ...d.data()}))),
-            err => console.error("Data Fetch Error:", err)
+        
+        const dataRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
+        
+        // 讀取服務 (加強錯誤處理)
+        dataRef.collection('services').orderBy('name').onSnapshot(
+            snap => setServices(snap.docs.map(d => ({id:d.id, ...d.data()}))),
+            err => console.error("Service fetch error", err)
         );
 
-        const dbRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
-        
-        safeSnap(dbRef.collection('services').orderBy('name'), setServices);
-        safeSnap(dbRef.collection('addons'), setAddons);
-        
-        dbRef.collection('settings').onSnapshot(snap => {
-            const s = {}; snap.forEach(d => s[d.id] = d.data());
-            setLocationSettings(s);
-        }, err => console.error("Settings Error", err));
+        // 讀取設定
+        dataRef.collection('settings').onSnapshot(
+            snap => {
+                const s = {}; 
+                snap.forEach(d => s[d.id] = d.data());
+                setLocationSettings(s);
+            },
+            err => console.error("Settings fetch error", err)
+        );
 
       }, [user]);
 
-      // 預約資料監聽
+      // 讀取已預約時段
       useEffect(() => {
         if (!user || !selectedLocation || !selectedDate) return;
+        
         const dateStr = selectedDate.toISOString().split('T')[0];
         const q = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
-          .where('locationId', '==', selectedLocation.id).where('date', '==', dateStr);
+          .where('locationId', '==', selectedLocation.id)
+          .where('date', '==', dateStr);
         
-        q.onSnapshot(snap => setBookedSlots(snap.docs.map(d => d.data().time)), err => console.error(err));
+        const unsub = q.onSnapshot(
+            snap => setBookedSlots(snap.docs.map(d => d.data().time)),
+            err => console.error("Booking fetch error", err)
+        );
+        return () => unsub();
       }, [user, selectedLocation, selectedDate]);
 
-      // Methods
+      // Logic Checkers
       const isDateAvailable = (date) => {
         if (!selectedLocation) return true;
         const settings = locationSettings[selectedLocation.id];
         if (!settings?.allowedDates?.length) return true;
-        return settings.allowedDates.includes(date.toISOString().split('T')[0]);
+        const dStr = date.toISOString().split('T')[0];
+        return settings.allowedDates.includes(dStr);
       };
 
       const getCurrentTimeSlots = () => {
@@ -203,28 +245,46 @@
       };
 
       const handleSubmit = async () => {
-        if (!user) return alert("尚未連線，請稍後");
+        if (!user) return alert("系統連線中，請稍後再試...");
+        
         const data = {
-          locationId: selectedLocation.id, locationName: selectedLocation.name,
-          serviceId: selectedService.id, serviceName: selectedService.name,
-          addons: selectedAddons, date: selectedDate.toISOString().split('T')[0],
-          time: selectedTime, customerName: customerInfo.name, customerPhone: customerInfo.phone,
-          notes: customerInfo.notes, createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
+          locationId: selectedLocation.id,
+          locationName: selectedLocation.name,
+          serviceId: selectedService.id,
+          serviceName: selectedService.name,
+          addons: selectedAddons, // 雖然 UI 沒顯示，但保留欄位
+          date: selectedDate.toISOString().split('T')[0],
+          time: selectedTime,
+          customerName: customerInfo.name,
+          customerPhone: customerInfo.phone,
+          notes: customerInfo.notes,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          userId: user.uid
         };
+
         try {
           await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(data);
-          const msg = `【預約通知】\n🏠 ${data.locationName}\n📅 ${data.date} ${data.time}\n💆 ${data.serviceName}\n👤 ${data.customerName}`;
-          if (window.liff?.isInClient()) await window.liff.sendMessages([{ type: 'text', text: msg }]);
+          
+          // LIFF Message
+          const msg = `【預約通知】\n🏠 ${data.locationName}\n📅 ${data.date} ${data.time}\n💆 ${data.serviceName}\n👤 ${data.customerName}\n📱 ${data.customerPhone}`;
+          if (window.liff?.isInClient()) {
+              await window.liff.sendMessages([{ type: 'text', text: msg }]);
+          }
+          
           setBookingStep(5);
-        } catch (e) { alert('預約失敗: ' + e.message); }
+        } catch (e) {
+          alert('預約失敗: ' + e.message);
+          console.error(e);
+        }
       };
 
       const reset = () => {
         setBookingStep(1); setSelectedLocation(null); setSelectedService(null);
-        setSelectedAddons([]); setSelectedTime(null); setCustomerInfo({name:'',phone:'',notes:''}); setView('home');
+        setSelectedTime(null); setCustomerInfo({name:'',phone:'',notes:''}); setView('home');
       };
 
       // --- Views ---
+
       if (view === 'admin-login') {
         return (
           <div className="min-h-screen flex items-center justify-center">
@@ -233,7 +293,7 @@
               <input type="password" placeholder="PIN" className="w-full border p-2 mb-4" value={adminPinInput} onChange={e=>setAdminPinInput(e.target.value)} />
               <div className="flex gap-2">
                 <button onClick={()=>setView('home')} className="flex-1 bg-gray-200 py-2 rounded">取消</button>
-                <button onClick={()=>adminPinInput===ADMIN_PIN?setView('admin-dashboard'):alert('Error')} className="flex-1 bg-[#8d6e63] text-white py-2 rounded">登入</button>
+                <button onClick={()=>adminPinInput===ADMIN_PIN?setView('admin-dashboard'):alert('密碼錯誤')} className="flex-1 bg-[#8d6e63] text-white py-2 rounded">登入</button>
               </div>
             </div>
           </div>
@@ -247,7 +307,7 @@
       if (view === 'home') {
         return (
           <div className="min-h-screen p-6 flex flex-col items-center justify-center bg-[#f4f1ea]">
-             <button onClick={()=>setView('admin-login')} className="absolute top-4 left-4 p-2 opacity-30"><Icon path={Icons.Settings}/></button>
+             <button onClick={()=>setView('admin-login')} className="absolute top-4 left-4 p-2 opacity-30"><Icon path={SvgPaths.settings}/></button>
              <div className="bg-[#fdfbf7] p-8 rounded-sm shadow-xl border border-[#e8e4dc] max-w-md w-full text-center">
                 <h1 className="text-3xl font-bold mb-2 text-[#4e342e] tracking-widest">線上預約</h1>
                 <p className="text-[#8d6e63] mb-8 text-sm">請選擇服務據點</p>
@@ -256,10 +316,10 @@
                     <button key={loc.id} onClick={()=>{setSelectedLocation(loc); setView('booking'); setBookingStep(2)}} 
                       className="w-full bg-white border-2 border-[#d7ccc8] hover:border-[#8d6e63] p-6 rounded-lg flex items-center justify-between group transition-all">
                       <div className="flex items-center gap-4">
-                        <span className="bg-[#efebe9] p-3 rounded-full text-[#5d4037]"><Icon path={Icons.MapPin}/></span>
+                        <span className="bg-[#efebe9] p-3 rounded-full text-[#5d4037]"><Icon path={SvgPaths.map}/></span>
                         <h3 className="text-xl font-bold text-[#4e342e]">{loc.name}</h3>
                       </div>
-                      <span className="text-[#d7ccc8] group-hover:text-[#8d6e63]"><Icon path={Icons.ChevronRight}/></span>
+                      <span className="text-[#d7ccc8] group-hover:text-[#8d6e63]"><Icon path={SvgPaths.right}/></span>
                     </button>
                   ))}
                 </div>
@@ -273,15 +333,18 @@
         <div className="min-h-screen py-6 px-4 bg-[#f4f1ea]">
           <div className="max-w-lg mx-auto bg-[#fdfbf7] min-h-[85vh] rounded-sm shadow-xl border border-[#e8e4dc] flex flex-col">
             <div className="p-6 border-b border-[#e8e4dc] flex items-center justify-between bg-white/50">
-               <button onClick={()=>bookingStep===2?reset():setBookingStep(s=>s-1)} className="text-[#8d6e63]"><Icon path={Icons.ChevronLeft}/></button>
+               <button onClick={()=>bookingStep===2?reset():setBookingStep(s=>s-1)} className="text-[#8d6e63]"><Icon path={SvgPaths.left}/></button>
                <span className="font-bold text-[#4e342e]">{bookingStep===2?'選擇服務':bookingStep===3?'選擇時間':'資料確認'}</span>
                <div className="w-6"></div>
             </div>
             <div className="flex-1 p-6 overflow-y-auto">
+              
+              {/* Step 2: Service */}
               {bookingStep===2 && (
                 <div className="space-y-6">
-                  <div className="bg-[#efebe9]/50 p-4 rounded text-xs text-[#6d4c41] flex gap-2"><span className="mt-0.5"><Icon path={Icons.Info} size={16}/></span>{DISCOUNT_NOTE}</div>
+                  <div className="bg-[#efebe9]/50 p-4 rounded text-xs text-[#6d4c41] flex gap-2"><span className="mt-0.5"><Icon path={SvgPaths.info} size={16}/></span>{DISCOUNT_NOTE}</div>
                   <div className="grid gap-3">
+                    {services.length === 0 && <div className="text-center text-gray-400">載入中...</div>}
                     {services.map(s=>(
                       <label key={s.id} className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer ${selectedService?.id===s.id?'border-[#8d6e63] bg-[#efebe9]':'border-gray-200'}`}>
                         <div className="flex items-center gap-3">
@@ -293,13 +356,15 @@
                   </div>
                 </div>
               )}
+
+              {/* Step 3: Date & Time */}
               {bookingStep===3 && (
                  <div className="space-y-6">
                    <div className="bg-white p-4 rounded border shadow-sm">
                      <div className="flex justify-between items-center mb-4">
-                       <button onClick={()=>setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth()-1)))} className="p-1 hover:bg-gray-100"><Icon path={Icons.ChevronLeft}/></button>
+                       <button onClick={()=>setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth()-1)))} className="p-1 hover:bg-gray-100"><Icon path={SvgPaths.left}/></button>
                        <span className="font-bold">{selectedDate.getFullYear()}/{selectedDate.getMonth()+1}</span>
-                       <button onClick={()=>setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth()+1)))} className="p-1 hover:bg-gray-100"><Icon path={Icons.ChevronRight}/></button>
+                       <button onClick={()=>setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth()+1)))} className="p-1 hover:bg-gray-100"><Icon path={SvgPaths.right}/></button>
                      </div>
                      <div className="grid grid-cols-7 gap-1 text-center mb-2">{['日','一','二','三','四','五','六'].map(d=><div key={d} className="text-xs text-gray-400">{d}</div>)}</div>
                      <div className="grid grid-cols-7 gap-1">
@@ -320,9 +385,11 @@
                          <button key={t} disabled={bookedSlots.includes(t)} onClick={()=>setSelectedTime(t)} className={`py-3 rounded border text-sm ${selectedTime===t?'bg-[#8d6e63] text-white':bookedSlots.includes(t)?'bg-gray-100 text-gray-300':'bg-white hover:border-[#8d6e63]'}`}>{t}</button>
                        ))}
                      </div>
-                   ):<div className="text-center text-red-400 text-sm">未開放預約</div>}
+                   ):<div className="text-center text-red-400 text-sm">此日期未開放預約</div>}
                  </div>
               )}
+
+              {/* Step 4: Info */}
               {bookingStep===4 && (
                 <div className="space-y-4">
                   <div className="bg-[#efebe9] p-4 rounded text-sm space-y-2 border border-[#d7ccc8]">
@@ -335,14 +402,17 @@
                   <textarea placeholder="備註" className="w-full border-b-2 bg-transparent py-2 outline-none resize-none" rows={2} value={customerInfo.notes} onChange={e=>setCustomerInfo({...customerInfo,notes:e.target.value})}/>
                 </div>
               )}
+
+              {/* Step 5: Success */}
               {bookingStep===5 && (
                 <div className="text-center py-10">
-                  <div className="text-green-600 mb-4"><Icon path={Icons.CheckCircle} size={48}/></div>
+                  <div className="text-green-600 mb-4 flex justify-center"><Icon path={SvgPaths.check} size={48}/></div>
                   <h2 className="text-2xl font-bold mb-6">預約成功！</h2>
                   <button onClick={reset} className="bg-[#8d6e63] text-white px-8 py-3 rounded">回首頁</button>
                 </div>
               )}
             </div>
+
             {bookingStep<5 && (
               <div className="p-6 border-t bg-white/50">
                 <button onClick={()=>{
@@ -378,7 +448,7 @@
       };
 
       const init = async () => {
-         if(!confirm('Reset Services?'))return;
+         if(!confirm('重置服務列表?'))return;
          const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
          [{name:'霧眉(一般)',price:4800,duration:90},{name:'霧眉(優惠)',price:4600,duration:90},{name:'霧唇(一般)',price:5200,duration:120},{name:'霧唇(優惠)',price:5000,duration:120}].forEach(d=>ref.add(d));
          alert('Done');
@@ -410,12 +480,12 @@
                {tab==='svc' && (
                  <div>
                    <button onClick={init} className="bg-yellow-600 text-white px-3 py-1 rounded text-sm mb-4">重置預設服務</button>
-                   <div className="space-y-2">{services.map(s=><div key={s.id} className="flex justify-between border p-2 rounded text-sm"><span>{s.name} (${s.price})</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-500"><Icon path={Icons.Trash2} size={16}/></button></div>)}</div>
-                   <button onClick={async()=>{const n=prompt('名');const p=prompt('價');if(n&&p)await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({name:n,price:Number(p),duration:90})}} className="mt-4 border border-[#8d6e63] text-[#8d6e63] px-4 py-2 rounded flex items-center gap-2 text-sm"><Icon path={Icons.Plus} size={16}/>新增</button>
+                   <div className="space-y-2">{services.map(s=><div key={s.id} className="flex justify-between border p-2 rounded text-sm"><span>{s.name} (${s.price})</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-500"><Icon path={SvgPaths.trash} size={16}/></button></div>)}</div>
+                   <button onClick={async()=>{const n=prompt('名');const p=prompt('價');if(n&&p)await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({name:n,price:Number(p),duration:90})}} className="mt-4 border border-[#8d6e63] text-[#8d6e63] px-4 py-2 rounded flex items-center gap-2 text-sm"><Icon path={SvgPaths.plus} size={16}/>新增</button>
                  </div>
                )}
                {tab==='book' && (
-                 <div className="space-y-2">{books.map(b=><div key={b.id} className="border-b p-2 text-sm flex justify-between"><div><div className="font-bold text-[#8d6e63]">{b.date} {b.time}</div><div>{b.serviceName} - {b.customerName}</div></div><button onClick={()=>confirm('Del?')&&db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-400"><Icon path={Icons.Trash2} size={16}/></button></div>)}</div>
+                 <div className="space-y-2">{books.map(b=><div key={b.id} className="border-b p-2 text-sm flex justify-between"><div><div className="font-bold text-[#8d6e63]">{b.date} {b.time}</div><div>{b.serviceName} - {b.customerName}</div></div><button onClick={()=>confirm('Del?')&&db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-400"><Icon path={SvgPaths.trash} size={16}/></button></div>)}</div>
                )}
              </div>
            </div>
