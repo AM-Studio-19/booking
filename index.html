@@ -191,7 +191,13 @@
           let price = 0;
           let duration = 0;
           svcs.forEach(s => { price += s.price; duration += s.duration; });
-          if (isTwoPeople) { price *= 2; duration *= 2; }
+          
+          if (isTwoPeople) { 
+              price *= 2; 
+              duration *= 2; 
+              price -= 400; // 兩人同行優惠，每人折200，共折400
+          }
+          
           adds.forEach(a => { price += a.price; duration += a.duration; });
           return { price, duration };
       };
@@ -225,7 +231,7 @@
           try {
               const ref = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(order);
               setLastOrder(order);
-              const msg = `【預約申請通知】\n📍 ${order.locationName}\n📅 ${order.date} ${order.time}\n💅 ${order.serviceName}${isTwoPeople ? ' (兩人同行)' : ''}\n💰 預估總額：$${totals.price}\n👤 ${order.customerName}\n⚠️ 請等候店家確認通知，並完成訂金支付。`;
+              const msg = `【預約申請通知】\n📍 ${order.locationName}\n📅 ${order.date} ${order.time}\n💅 ${order.serviceName}${isTwoPeople ? ' (兩人同行優惠)' : ''}\n💰 預估總額：$${totals.price}\n👤 ${order.customerName}\n⚠️ 請等候店家確認通知，並完成訂金支付。`;
               if (window.liff?.isInClient()) {
                   try { await window.liff.sendMessages([{ type: 'text', text: msg }]); await ref.update({ msgSent: true }); } catch (err) {}
               }
@@ -275,7 +281,7 @@
               <div className="flex-1 p-6 max-w-lg mx-auto w-full overflow-y-auto pb-20">
                   {step === 2 && (
                       <div className="space-y-6 fade-in">
-                          {/* 預約模式切換 (上方獨立區塊) */}
+                          {/* 預約模式切換 */}
                           <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
                               <button onClick={()=>setIsTwoPeople(false)} className={`flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 mode-btn ${!isTwoPeople ? 'active' : 'text-gray-500 hover:bg-gray-200'}`}>
                                   <Icon path={Icons.user}/> 單人預約
@@ -286,10 +292,11 @@
                           </div>
 
                           {isTwoPeople && (
-                              <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg text-xs text-orange-800 mb-4">
-                                  <b>💡 兩人同行說明：</b><br/>
-                                  • 若兩人操作相同項目：請直接選擇該項目，系統將自動 x2。<br/>
-                                  • 若兩人操作不同項目：請勾選所有需要的項目，系統將自動疊加時間。
+                              <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg text-xs text-orange-900 mb-4 leading-relaxed">
+                                  <b className="text-sm">🎁 兩人同行專屬優惠：每人折抵 $200 (共省 $400)</b><br/>
+                                  • 若兩人操作相同項目：請直接選擇該項目，系統將自動計算雙人價格與時間。<br/>
+                                  • 若兩人操作不同項目：請勾選所有需要的項目，系統將自動疊加。<br/>
+                                  <span className="text-red-600 font-bold mt-1 block">❗ 若要約不同時間：請回到「單人預約」分別填寫，並在備註欄註明同行者。</span>
                               </div>
                           )}
 
@@ -328,7 +335,10 @@
                           
                           {/* 即時總覽 */}
                           <div className="bg-[#8d6e63] text-white p-4 rounded-xl flex justify-between items-center shadow-lg sticky bottom-4">
-                              <div className="text-sm">預估時長：{totals.duration} 分鐘</div>
+                              <div className="text-sm">
+                                  預估時長：{totals.duration} 分鐘
+                                  {isTwoPeople && <span className="block text-xs opacity-80">(含兩人同行優惠 -$400)</span>}
+                              </div>
                               <div className="font-bold text-lg">${totals.price}</div>
                           </div>
                       </div>
