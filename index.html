@@ -62,7 +62,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
     
-    // ⬇️ Firebase 設定
     const rawFirebaseConfig = {
       apiKey: "AIzaSyCzCXFgd7VrWHyHrM3GILQ2JHzQaa7yoIw",
       authDomain: "amstudio-booking.firebaseapp.com",
@@ -72,7 +71,6 @@
       appId: "1:197698776484:web:818beeea66d470bfc36531"
     };
 
-    // ⬇️ 這裡修正為您截圖中的正確 ID
     const LIFF_ID = '2008567948-KGMPJPGe';
     const APP_ID = 'booking-system-web';
     const ADMIN_PIN = '1234';
@@ -120,6 +118,31 @@
     const LOCATIONS = [{ id: 'tainan', name: '台南工作室' }, { id: 'kaohsiung', name: '高雄工作室' }];
     const DEFAULT_TIME_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
     const DISCOUNT_NOTE = "※ 優惠身分包含：學生、醫護、軍公教、當月壽星、舊客介紹 (請於現場出示證明)";
+
+    // 工具函式：產生 Google 日曆連結
+    const generateGoogleCalendarLink = (booking) => {
+        const title = encodeURIComponent(`預約：${booking.serviceName} - ${booking.customerName}`);
+        const details = encodeURIComponent(`顧客：${booking.customerName}\n電話：${booking.customerPhone}\n地點：${booking.locationName}\n服務：${booking.serviceName}\n備註：${booking.notes || '無'}`);
+        const location = encodeURIComponent(booking.locationName);
+        
+        // 解析時間 (簡易處理，預設為當日)
+        // 格式需為 YYYYMMDDTHHMMSSZ
+        try {
+            const datePart = booking.date.replace(/-/g, '');
+            let timePart = '000000';
+            if (booking.time.includes(':')) {
+                const [hh, mm] = booking.time.replace(/[^0-9:]/g, '').split(':');
+                timePart = `${hh}${mm}00`;
+            }
+            const start = `${datePart}T${timePart}`;
+            // 預設 2 小時
+            const end = `${datePart}T${parseInt(timePart.substring(0,2)) + 2}${timePart.substring(2)}`;
+            
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${start}/${end}`;
+        } catch (e) {
+            return 'https://calendar.google.com/';
+        }
+    };
 
     const AdminCalendar = ({ allowedDatesStr, onChange }) => {
         const [viewDate, setViewDate] = useState(new Date());
@@ -187,22 +210,20 @@
       const [bookedSlots, setBookedSlots] = useState([]); 
       const [locationSettings, setLocationSettings] = useState({});
       const [adminPinInput, setAdminPinInput] = useState('');
-      const [liffStatus, setLiffStatus] = useState('初始化中...'); 
+      const [liffStatus, setLiffStatus] = useState('初始化中...');
+      const [lastBookingData, setLastBookingData] = useState(null); // 用於成功頁面
 
       useEffect(() => {
         const init = async () => {
             try {
-                // 先 Firebase 匿名登入
                 await auth.signInAnonymously();
-                
-                // 再初始化 LIFF
                 if (window.liff) {
                     await window.liff.init({ liffId: LIFF_ID });
                     if (!window.liff.isLoggedIn()) {
-                        setLiffStatus('未登入 LINE，跳轉中...');
+                        setLiffStatus('未登入 LINE');
                         window.liff.login();
                     } else {
-                        setLiffStatus('LINE 已登入 (OK)');
+                        setLiffStatus('LINE 已登入');
                     }
                 }
             } catch (e) {
@@ -262,41 +283,26 @@
         };
         
         try {
-          // 1. 寫入資料庫
           const docRef = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(data);
           
-          // 2. 準備訊息
-          const msg = `【預約通知】\n` +
-            `🏠 地點：${data.locationName}\n` +
-            `📅 時間：${data.date} ${data.time}\n` +
-            `💆 項目：${data.serviceName}\n` +
-            `➕ 加購：${addonsText}\n` +
-            `👤 姓名：${data.customerName}\n` +
-            `📱 電話：${data.customerPhone}\n` +
-            `📝 備註：${data.customerInfo?.notes || '無'}`;
-            
+          const msg = `【預約通知】\n🏠 ${data.locationName}\n📅 ${data.date} ${data.time}\n💆 ${data.serviceName}\n👤 ${data.customerName}`;
           let msgSent = false;
-          // 3. 嘗試發送訊息
+          
           if (window.liff?.isInClient()) {
               try {
                   await window.liff.sendMessages([{ type: 'text', text: msg }]);
                   msgSent = true;
                   await docRef.update({ msgSent: true, status: 'confirmed' });
-              } catch (msgErr) {
-                  console.warn("LINE 訊息傳送失敗:", msgErr);
-                  alert(`訊息發送失敗: ${msgErr.message}\n(但預約資料已成功儲存)`);
-              }
+              } catch (msgErr) { console.warn(msgErr); }
           }
           
-          if (!msgSent) {
-              if (!window.liff?.isInClient()) {
-                  alert("✅ 預約已成功！\n\n(因在外部瀏覽器開啟，請您手動複製下方文字傳送給我們確認)\n\n" + msg);
-              }
+          if (!msgSent && !window.liff?.isInClient()) {
+              alert("✅ 預約已成功！\n\n(因在外部瀏覽器開啟，請手動傳送確認訊息)");
           }
+          
+          setLastBookingData(data); // 儲存資料供按鈕使用
           setBookingStep(5);
-        } catch (e) { 
-            alert('❌ 預約失敗 (資料庫寫入錯誤): ' + e.message); 
-        }
+        } catch (e) { alert('❌ 預約失敗: ' + e.message); }
       };
 
       const reset = () => {
@@ -354,20 +360,7 @@
                   {addons.length > 0 && (
                       <div className="mt-6 border-t pt-4 border-[#d7ccc8]">
                           <h3 className="font-bold text-[#4e342e] mb-3">加購子項目</h3>
-                          <div className="grid gap-2">
-                              {addons.map(ad => {
-                                  const isChecked = selectedAddons.some(a => a.id === ad.id);
-                                  return (
-                                    <label key={ad.id} className={`flex items-center justify-between p-3 border rounded cursor-pointer ${isChecked ? 'bg-[#efebe9] border-[#8d6e63]' : 'border-gray-200'}`}>
-                                        <div className="flex items-center gap-2">
-                                            <input type="checkbox" className="accent-[#8d6e63]" checked={isChecked} onChange={e => { if(e.target.checked) setSelectedAddons([...selectedAddons, ad]); else setSelectedAddons(selectedAddons.filter(a => a.id !== ad.id)); }} />
-                                            <span>{ad.name}</span>
-                                        </div>
-                                        <span className="text-sm text-[#8d6e63]">+${ad.price}</span>
-                                    </label>
-                                  );
-                              })}
-                          </div>
+                          <div className="grid gap-2">{addons.map(ad => {const isChecked = selectedAddons.some(a => a.id === ad.id);return (<label key={ad.id} className={`flex items-center justify-between p-3 border rounded cursor-pointer ${isChecked ? 'bg-[#efebe9] border-[#8d6e63]' : 'border-gray-200'}`}><div className="flex items-center gap-2"><input type="checkbox" className="accent-[#8d6e63]" checked={isChecked} onChange={e => { if(e.target.checked) setSelectedAddons([...selectedAddons, ad]); else setSelectedAddons(selectedAddons.filter(a => a.id !== ad.id)); }} /><span>{ad.name}</span></div><span className="text-sm text-[#8d6e63]">+${ad.price}</span></label>);})}</div>
                       </div>
                   )}
                 </div>
@@ -381,36 +374,34 @@
                    </div>
                    {isDateAvailable(selectedDate)? (
                        <div>
-                           <div className="grid grid-cols-2 gap-3 mb-4">
-                               {getCurrentTimeSlots().map(t=>(
-                                   <button key={t} disabled={bookedSlots.includes(t)} 
-                                     onClick={()=>{setSelectedTime(t); setCustomTimeInput('')}} 
-                                     className={`py-3 rounded border text-sm ${selectedTime===t?'bg-[#8d6e63] text-white':bookedSlots.includes(t)?'bg-gray-100 text-gray-300':'bg-white hover:border-[#8d6e63]'}`}
-                                   >
-                                     {t} {bookedSlots.includes(t) && '(已滿)'}
-                                   </button>
-                               ))}
-                           </div>
-                           {selectedTime === '微調時段申請' && (
-                               <div className="p-4 bg-[#efebe9]/50 rounded border border-[#d7ccc8] fade-in">
-                                   <label className="block text-sm font-bold text-[#6d4c41] mb-2 flex items-center gap-2"><Icon path={SvgPaths.clock} size={16}/> 請選擇微調時間：</label>
-                                   <input type="time" className="w-full p-2 rounded border border-[#d7ccc8] bg-white text-lg text-center font-bold text-[#5d4037]" value={customTimeInput} onChange={e => setCustomTimeInput(e.target.value)} />
-                                   <p className="text-xs text-[#8d6e63] mt-2">※ 實際安排需待我們確認後回覆。</p>
-                               </div>
-                           )}
+                           <div className="grid grid-cols-2 gap-3 mb-4">{getCurrentTimeSlots().map(t=>(<button key={t} disabled={bookedSlots.includes(t)} onClick={()=>{setSelectedTime(t); setCustomTimeInput('')}} className={`py-3 rounded border text-sm ${selectedTime===t?'bg-[#8d6e63] text-white':bookedSlots.includes(t)?'bg-gray-100 text-gray-300':'bg-white hover:border-[#8d6e63]'}`}>{t} {bookedSlots.includes(t) && '(已滿)'}</button>))}</div>
+                           {selectedTime === '微調時段申請' && (<div className="p-4 bg-[#efebe9]/50 rounded border border-[#d7ccc8] fade-in"><label className="block text-sm font-bold text-[#6d4c41] mb-2 flex items-center gap-2"><Icon path={SvgPaths.clock} size={16}/> 請選擇微調時間：</label><input type="time" className="w-full p-2 rounded border border-[#d7ccc8] bg-white text-lg text-center font-bold text-[#5d4037]" value={customTimeInput} onChange={e => setCustomTimeInput(e.target.value)} /><p className="text-xs text-[#8d6e63] mt-2">※ 實際安排需待我們確認後回覆。</p></div>)}
                        </div>
                    ) : <div className="text-center text-red-400 text-sm">此日期未開放預約</div>}
                  </div>
               )}
               {bookingStep===4 && (
                 <div className="space-y-4">
-                  <div className="bg-[#efebe9] p-4 rounded text-sm space-y-2 border border-[#d7ccc8]"><div className="flex justify-between"><span className="text-[#a1887f]">地點</span><b>{selectedLocation?.name}</b></div><div className="flex justify-between"><span className="text-[#a1887f]">時間</span><b>{selectedDate.toLocaleDateString()} {selectedTime === '微調時段申請' ? `微調 ${customTimeInput}` : selectedTime}</b></div><div className="flex justify-between"><span className="text-[#a1887f]">項目</span><b>{selectedService?.name}</b></div>
-                  {selectedAddons.length > 0 && <div className="flex justify-between"><span className="text-[#a1887f]">加購</span><b>{selectedAddons.map(a=>a.name).join(', ')}</b></div>}
-                  </div>
+                  <div className="bg-[#efebe9] p-4 rounded text-sm space-y-2 border border-[#d7ccc8]"><div className="flex justify-between"><span className="text-[#a1887f]">地點</span><b>{selectedLocation?.name}</b></div><div className="flex justify-between"><span className="text-[#a1887f]">時間</span><b>{selectedDate.toLocaleDateString()} {selectedTime === '微調時段申請' ? `微調 ${customTimeInput}` : selectedTime}</b></div><div className="flex justify-between"><span className="text-[#a1887f]">項目</span><b>{selectedService?.name}</b></div>{selectedAddons.length > 0 && <div className="flex justify-between"><span className="text-[#a1887f]">加購</span><b>{selectedAddons.map(a=>a.name).join(', ')}</b></div>}</div>
                   <input type="text" placeholder="姓名" className="w-full border-b-2 bg-transparent py-2 outline-none" value={customerInfo.name} onChange={e=>setCustomerInfo({...customerInfo,name:e.target.value})}/><input type="tel" placeholder="電話" className="w-full border-b-2 bg-transparent py-2 outline-none" value={customerInfo.phone} onChange={e=>setCustomerInfo({...customerInfo,phone:e.target.value})}/><textarea placeholder="備註" className="w-full border-b-2 bg-transparent py-2 outline-none resize-none" rows={2} value={customerInfo.notes} onChange={e=>setCustomerInfo({...customerInfo,notes:e.target.value})}/>
                 </div>
               )}
-              {bookingStep===5 && <div className="text-center py-10"><div className="text-green-600 mb-4 flex justify-center"><Icon path={SvgPaths.check} size={48}/></div><h2 className="text-2xl font-bold mb-6">預約成功！</h2><p className="text-gray-500 text-sm mb-4">我們已收到您的資訊</p><button onClick={reset} className="bg-[#8d6e63] text-white px-8 py-3 rounded">回首頁</button></div>}
+              {bookingStep===5 && (
+                  <div className="text-center py-10">
+                      <div className="text-green-600 mb-4 flex justify-center"><Icon path={SvgPaths.check} size={48}/></div>
+                      <h2 className="text-2xl font-bold mb-2">預約成功！</h2>
+                      <p className="text-gray-500 text-sm mb-6">我們已收到您的資訊</p>
+                      
+                      {/* 加入 Google 日曆按鈕 (前台) */}
+                      {lastBookingData && (
+                          <a href={generateGoogleCalendarLink(lastBookingData)} target="_blank" className="inline-flex items-center gap-2 bg-white border border-[#d7ccc8] text-[#5d4037] px-6 py-2 rounded shadow-sm mb-4 hover:bg-[#efebe9]">
+                              <Icon path={SvgPaths.calendar} size={18}/> 加入 Google 日曆
+                          </a>
+                      )}
+                      <br/>
+                      <button onClick={reset} className="bg-[#8d6e63] text-white px-8 py-3 rounded mt-2">回首頁</button>
+                  </div>
+              )}
             </div>
             {bookingStep<5 && <div className="p-6 border-t bg-white/50"><button onClick={()=>{
                 if(bookingStep===2&&!selectedService)return alert('請選擇服務');
@@ -533,6 +524,11 @@
                                     <button onClick={()=>copyMsg(b)} className="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-1 rounded text-xs flex items-center justify-center gap-1">
                                         <Icon path={SvgPaths.copy} size={14}/> 複製確認文
                                     </button>
+                                    
+                                    {/* 加入 Google 日曆按鈕 (後台) */}
+                                    <a href={generateGoogleCalendarLink(b)} target="_blank" className="flex-1 bg-white text-[#5d4037] border border-[#d7ccc8] py-1 rounded text-xs flex items-center justify-center gap-1">
+                                        <Icon path={SvgPaths.calendar} size={14}/> 加日曆
+                                    </a>
                                 </div>
                             </div>
                         ))}
