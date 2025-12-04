@@ -23,10 +23,8 @@
     .fade-in { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* 後台日曆 */
     .date-cell.selected { background-color: #8d6e63; color: white; font-weight: bold; }
-    .date-cell.has-rule { border: 2px solid #d97706; position: relative; }
-    .date-cell.has-rule::after { content:''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #d97706; border-radius: 50%; }
+    .date-cell.has-rule { border-bottom: 2px solid #d97706; }
   </style>
 
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -126,18 +124,22 @@
         { title: '預約取消', text: '您好，您的預約已取消。若有需要請再次預約，謝謝。' }
     ];
 
-    // --- Main App ---
     function App() {
       const [user, setUser] = useState(null);
       const [page, setPage] = useState('home'); 
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
-      const [svc, setSvc] = useState(null);
+      
+      // V18 修改：svc 改為 svcs 陣列，支援多選
+      const [svcs, setSvcs] = useState([]);
+      
       const [adds, setAdds] = useState([]);
       const [date, setDate] = useState(new Date());
       const [time, setTime] = useState(null);
       const [customTime, setCustomTime] = useState('');
       const [info, setInfo] = useState({name:'', phone:'', notes:'', name2: ''});
+      
+      // V18 修改：isTwoPeople 邏輯變化
       const [isTwoPeople, setIsTwoPeople] = useState(false);
       const [lastOrder, setLastOrder] = useState(null);
 
@@ -185,27 +187,60 @@
           return conf?.timeSlots?.length ? conf.timeSlots : DEFAULT_SLOTS;
       };
 
-      const calculateTotal = () => {
-          if (!svc) return 0;
-          let total = svc.price * (isTwoPeople ? 2 : 1);
-          adds.forEach(a => total += a.price);
-          return total;
+      // V18 邏輯核心：計算總金額與總時間
+      const calculateTotals = () => {
+          let price = 0;
+          let duration = 0;
+          
+          // 計算主服務
+          svcs.forEach(s => {
+              price += s.price;
+              duration += s.duration;
+          });
+
+          // 若為「兩人同行且操作相同項目」模式，主服務 x 2
+          if (isTwoPeople) {
+              price *= 2;
+              duration *= 2;
+          }
+
+          // 加購項目 (直接疊加)
+          adds.forEach(a => {
+              price += a.price;
+              duration += a.duration;
+          });
+
+          return { price, duration };
+      };
+
+      // 服務多選切換
+      const toggleService = (s) => {
+          const exists = svcs.find(item => item.id === s.id);
+          if (exists) {
+              setSvcs(svcs.filter(item => item.id !== s.id));
+          } else {
+              setSvcs([...svcs, s]);
+          }
       };
 
       const handleSubmit = async () => {
           if (!user) return alert('連線中...');
           const tVal = time === '微調時段申請' ? `微調 ${customTime}` : time;
           const addStr = adds.map(a => a.name).join(', ');
-          const totalPrice = calculateTotal();
+          const totals = calculateTotals();
           
+          // 組合服務名稱
+          const svcNames = svcs.map(s => s.name).join(' + ');
+
           const order = {
               locationId: loc.id, locationName: loc.name,
-              serviceId: svc.id, serviceName: svc.name,
+              serviceId: svcs.map(s=>s.id), serviceName: svcNames, // V18 Change
               addons: adds, date: date.toISOString().split('T')[0],
               time: tVal, customerName: info.name, customerPhone: info.phone,
               notes: info.notes, 
               isTwoPeople, secondPersonName: info.name2,
-              totalPrice, 
+              totalPrice: totals.price, 
+              totalDuration: totals.duration,
               status: 'pending', paymentStatus: 'unpaid', msgSent: false,
               createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
           };
@@ -213,7 +248,7 @@
           try {
               const ref = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(order);
               setLastOrder(order);
-              const msg = `【預約申請通知】\n📍 ${order.locationName}\n📅 ${order.date} ${order.time}\n💅 ${order.serviceName}${isTwoPeople ? ' (兩人同行)' : ''}\n💰 預估總額：$${totalPrice}\n👤 ${order.customerName}\n⚠️ 請等候店家確認通知，並完成訂金支付。`;
+              const msg = `【預約申請通知】\n📍 ${order.locationName}\n📅 ${order.date} ${order.time}\n💅 ${order.serviceName}${isTwoPeople ? ' (兩人同行)' : ''}\n💰 預估總額：$${totals.price}\n👤 ${order.customerName}\n⚠️ 請等候店家確認通知，並完成訂金支付。`;
               if (window.liff?.isInClient()) {
                   try { await window.liff.sendMessages([{ type: 'text', text: msg }]); await ref.update({ msgSent: true }); } catch (err) {}
               }
@@ -222,7 +257,7 @@
       };
 
       const reset = () => {
-          setStep(1); setLoc(null); setSvc(null); setAdds([]); setTime(null); setCustomTime(''); setInfo({name:'', phone:'', notes:'', name2:''}); setIsTwoPeople(false);
+          setStep(1); setLoc(null); setSvcs([]); setAdds([]); setTime(null); setCustomTime(''); setInfo({name:'', phone:'', notes:'', name2:''}); setIsTwoPeople(false);
           setPage('home');
       };
 
@@ -250,6 +285,8 @@
           );
       }
 
+      const totals = calculateTotals();
+
       return (
           <div className="min-h-screen bg-white md:bg-[#f4f1ea] flex flex-col">
               <div className="bg-white p-4 sticky top-0 z-10 border-b flex items-center justify-between shadow-sm">
@@ -261,20 +298,30 @@
               <div className="flex-1 p-6 max-w-lg mx-auto w-full overflow-y-auto pb-20">
                   {step === 2 && (
                       <div className="space-y-6 fade-in">
-                          <h2 className="text-xl font-bold text-[#4e342e]">選擇服務</h2>
-                          <div className="grid gap-3">{services.map(s => (
-                              <button key={s.id} onClick={()=>setSvc(s)} className={`option-card p-4 rounded-xl flex items-center justify-between text-left ${svc?.id===s.id ? 'active' : 'bg-white'}`}>
-                                  <div><div className="font-bold text-lg">{s.name}</div><div className="text-sm opacity-70">${s.price}・{s.duration}分</div></div>
-                                  {svc?.id===s.id && <Icon path={Icons.check} className="text-[#8d6e63]"/>}
-                              </button>
-                          ))}</div>
-                          <div className="p-4 bg-white border rounded-xl flex items-center justify-between">
-                              <div className="flex items-center gap-3"><div className="bg-[#efebe9] p-2 rounded-full text-[#8d6e63]"><Icon path={Icons.user}/></div><div><div className="font-bold text-[#4e342e]">兩人同行</div><div className="text-xs text-gray-500">預約時間將會加倍</div></div></div>
+                          <div className="flex justify-between items-center">
+                              <h2 className="text-xl font-bold text-[#4e342e]">選擇服務 (可複選)</h2>
+                              <div className="text-sm text-[#8d6e63]">已選 {svcs.length} 項</div>
+                          </div>
+                          
+                          <div className="grid gap-3">{services.map(s => {
+                              const isSel = svcs.find(i => i.id === s.id);
+                              return (
+                                  <button key={s.id} onClick={()=>toggleService(s)} className={`option-card p-4 rounded-xl flex items-center justify-between text-left ${isSel ? 'active' : 'bg-white'}`}>
+                                      <div><div className="font-bold text-lg">{s.name}</div><div className="text-sm opacity-70">${s.price}・{s.duration}分</div></div>
+                                      {isSel && <Icon path={Icons.check} className="text-[#8d6e63]"/>}
+                                  </button>
+                              );
+                          })}</div>
+                          
+                          {/* 兩人同行開關 */}
+                          <div className="p-4 bg-white border rounded-xl flex items-center justify-between shadow-sm">
+                              <div className="flex items-center gap-3"><div className="bg-[#efebe9] p-2 rounded-full text-[#8d6e63]"><Icon path={Icons.users}/></div><div><div className="font-bold text-[#4e342e]">兩人同行 (操作相同項目)</div><div className="text-xs text-gray-500">若勾選，上述選擇的服務價格與時間將加倍</div></div></div>
                               <input type="checkbox" className="w-6 h-6 accent-[#8d6e63]" checked={isTwoPeople} onChange={e=>setIsTwoPeople(e.target.checked)} />
                           </div>
+
                           {addons.length > 0 && (
                               <div className="pt-4 border-t border-dashed">
-                                  <h3 className="font-bold text-[#4e342e] mb-3 text-sm">加購 (可複選)</h3>
+                                  <h3 className="font-bold text-[#4e342e] mb-3 text-sm">加購 / 優惠 (可複選)</h3>
                                   <div className="grid grid-cols-2 gap-3">{addons.map(ad => {
                                       const checked = adds.some(a=>a.id===ad.id);
                                       return (
@@ -286,11 +333,20 @@
                                   })}</div>
                               </div>
                           )}
+                          
+                          {/* 即時總覽 */}
+                          <div className="bg-[#8d6e63] text-white p-4 rounded-xl flex justify-between items-center shadow-lg">
+                              <div className="text-sm">預估時長：{totals.duration} 分鐘</div>
+                              <div className="font-bold text-lg">${totals.price}</div>
+                          </div>
                       </div>
                   )}
 
                   {step === 3 && (
                       <div className="space-y-6 fade-in">
+                          <div className="bg-[#fdfbf7] border border-[#d7ccc8] p-3 rounded-lg text-center text-sm text-[#8d6e63] font-bold">
+                              本次服務預計需要 {totals.duration} 分鐘
+                          </div>
                           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                               <div className="flex justify-between items-center mb-4">
                                   <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1, 1))} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><Icon path={Icons.chevronLeft}/></button>
@@ -331,9 +387,9 @@
                           <div className="bg-[#fff8f6] border border-[#f5ebe9] p-5 rounded-xl space-y-3 shadow-sm">
                               <div className="flex justify-between text-sm"><span className="text-gray-500">地點</span><span className="font-bold">{loc.name}</span></div>
                               <div className="flex justify-between text-sm"><span className="text-gray-500">時間</span><span className="font-bold">{date.toLocaleDateString()} {time==='微調時段申請'?customTime:time}</span></div>
-                              <div className="flex justify-between text-sm"><span className="text-gray-500">項目</span><span className="font-bold">{svc.name} {isTwoPeople && '(兩人)'}</span></div>
+                              <div className="flex justify-between text-sm"><span className="text-gray-500">項目</span><span className="font-bold">{svcs.map(s=>s.name).join(' + ')} {isTwoPeople && '(兩人)'}</span></div>
                               {adds.length>0 && <div className="flex justify-between text-sm"><span className="text-gray-500">加購</span><span className="font-bold">{adds.map(a=>a.name).join(',')}</span></div>}
-                              <div className="flex justify-between text-sm border-t pt-2 mt-2"><span className="text-gray-500">預估總額</span><span className="font-bold text-[#8d6e63]">${calculateTotal()}</span></div>
+                              <div className="flex justify-between text-sm border-t pt-2 mt-2"><span className="text-gray-500">預估總額</span><span className="font-bold text-[#8d6e63]">${totals.price}</span></div>
                           </div>
                           <div className="space-y-4">
                               <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">姓名</label><input className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63]" placeholder="請輸入真實姓名" value={info.name} onChange={e=>setInfo({...info,name:e.target.value})} /></div>
@@ -377,7 +433,7 @@
               {step < 6 && (
                   <div className="p-4 bg-white border-t safe-bottom">
                       <button onClick={()=>{
-                          if(step===2 && !svc) return alert('請選擇服務');
+                          if(step===2 && svcs.length===0) return alert('請至少選擇一項服務');
                           if(step===3 && !time) return alert('請選擇時間');
                           if(step===4 && (!info.name || !info.phone)) return alert('請填寫資料');
                           if(step===5 && !document.getElementById('agree').checked) return alert('請勾選同意');
@@ -505,12 +561,10 @@
 
         const handleDateClick = (locId, dStr) => {
             if (editMode) {
-                // Edit Special Times Mode
                 setSelectedDay({ locId, date: dStr });
                 const special = settings[locId]?.specialRules?.[dStr];
                 setDaySlots(special ? special.join(',') : '');
             } else {
-                // Quick Toggle Availability Mode
                 const current = editDates[locId].split(',').filter(x=>x);
                 const set = new Set(current);
                 if(set.has(dStr)) set.delete(dStr); else set.add(dStr);
