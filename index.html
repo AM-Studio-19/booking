@@ -84,7 +84,7 @@
     const APP_ID = 'booking-system-web';
     const ADMIN_PIN = '1234';
     
-    // 銀行帳號資訊 (可在此修改)
+    // 銀行帳號資訊
     const BANK_INFO = {
         code: '822 (中國信託)',
         account: '1234-5678-9012',
@@ -115,7 +115,7 @@
         trash: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>,
         plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
         msg: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
-        search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></> // 修正處：加上了 <>...</>
+        search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>
     };
 
     const LOCATIONS = [
@@ -135,9 +135,7 @@
     // --- Main App ---
     function App() {
       const [user, setUser] = useState(null);
-      const [page, setPage] = useState('home'); // home, booking, check-status, admin-login, admin
-      
-      // Booking State
+      const [page, setPage] = useState('home'); 
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
       const [svc, setSvc] = useState(null);
@@ -148,7 +146,6 @@
       const [info, setInfo] = useState({name:'', phone:'', notes:''});
       const [lastOrder, setLastOrder] = useState(null);
 
-      // Data
       const [services, setServices] = useState([]);
       const [addons, setAddons] = useState([]);
       const [settings, setSettings] = useState({});
@@ -190,11 +187,7 @@
           if (!loc) return DEFAULT_SLOTS;
           const dStr = d.toISOString().split('T')[0];
           const conf = settings[loc.id];
-          // 優先檢查是否有「單日特殊營業時間」
-          if (conf?.specialRules && conf.specialRules[dStr]) {
-              return conf.specialRules[dStr]; // 回傳該日專屬時段
-          }
-          // 否則回傳一般設定
+          if (conf?.specialRules && conf.specialRules[dStr]) return conf.specialRules[dStr];
           return conf?.timeSlots?.length ? conf.timeSlots : DEFAULT_SLOTS;
       };
 
@@ -208,26 +201,18 @@
               serviceId: svc.id, serviceName: svc.name,
               addons: adds, date: date.toISOString().split('T')[0],
               time: tVal, customerName: info.name, customerPhone: info.phone,
-              notes: info.notes, 
-              status: 'pending', // 初始狀態
-              paymentStatus: 'unpaid', // 付款狀態
-              msgSent: false,
+              notes: info.notes, status: 'pending', paymentStatus: 'unpaid', msgSent: false,
               createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
           };
 
           try {
               const ref = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').add(order);
               setLastOrder(order);
-              
-              // Try Send LIFF
               const msg = `【預約申請通知】\n📍 ${order.locationName}\n📅 ${order.date} ${order.time}\n💅 ${order.serviceName}\n👤 ${order.customerName}\n⚠️ 請等候店家確認通知，並完成訂金支付。`;
               if (window.liff?.isInClient()) {
-                  try {
-                      await window.liff.sendMessages([{ type: 'text', text: msg }]);
-                      await ref.update({ msgSent: true });
-                  } catch (err) {}
+                  try { await window.liff.sendMessages([{ type: 'text', text: msg }]); await ref.update({ msgSent: true }); } catch (err) {}
               }
-              setStep(6); // Success page
+              setStep(6);
           } catch (e) { alert('Error: ' + e.message); }
       };
 
@@ -280,7 +265,6 @@
               </div>
 
               <div className="flex-1 p-6 max-w-lg mx-auto w-full overflow-y-auto pb-20">
-                  {/* Step 2: Service */}
                   {step === 2 && (
                       <div className="space-y-6 fade-in">
                           <h2 className="text-xl font-bold text-[#4e342e]">選擇服務</h2>
@@ -307,7 +291,6 @@
                       </div>
                   )}
 
-                  {/* Step 3: Date & Time */}
                   {step === 3 && (
                       <div className="space-y-6 fade-in">
                           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
@@ -345,7 +328,6 @@
                       </div>
                   )}
 
-                  {/* Step 4: Info */}
                   {step === 4 && (
                       <div className="space-y-6 fade-in">
                           <div className="bg-[#fff8f6] border border-[#f5ebe9] p-5 rounded-xl space-y-3 shadow-sm">
@@ -362,7 +344,6 @@
                       </div>
                   )}
 
-                  {/* Step 5: Deposit Info (New) */}
                   {step === 5 && (
                       <div className="space-y-6 fade-in">
                           <h2 className="text-xl font-bold text-[#4e342e]">訂金說明</h2>
@@ -382,7 +363,6 @@
                       </div>
                   )}
 
-                  {/* Step 6: Success */}
                   {step === 6 && (
                       <div className="text-center pt-10 fade-in">
                           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600"><Icon path={Icons.check} size={40}/></div>
@@ -400,9 +380,7 @@
                           if(step===3 && !time) return alert('請選擇時間');
                           if(step===4 && (!info.name || !info.phone)) return alert('請填寫資料');
                           if(step===5 && !document.getElementById('agree').checked) return alert('請勾選同意');
-                          
-                          if(step===5) handleSubmit();
-                          else setStep(s=>s+1);
+                          if(step===5) handleSubmit(); else setStep(s=>s+1);
                       }} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-[#8d6e63]/30 active:scale-[0.98] transition-transform">
                           {step===5 ? '送出預約' : '下一步'}
                       </button>
@@ -412,7 +390,6 @@
       );
     }
 
-    // --- Status Check & Payment Report ---
     const StatusCheck = ({ user, onBack }) => {
         const [phone, setPhone] = useState('');
         const [results, setResults] = useState([]);
@@ -421,10 +398,25 @@
         const [last5, setLast5] = useState('');
 
         const search = async () => {
+            if(!phone) return alert("請輸入電話號碼");
             setLoading(true);
-            const snap = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
-                .where('customerPhone', '==', phone).orderBy('date', 'desc').limit(5).get();
-            setResults(snap.docs.map(d=>({id:d.id, ...d.data()})));
+            try {
+                // 修正：移除 orderBy，改用 JS 排序，避免需要建立索引
+                const snap = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
+                    .where('customerPhone', '==', phone).get();
+                
+                if (snap.empty) {
+                    alert("查無此電話的預約資料，請確認輸入是否正確");
+                    setResults([]);
+                } else {
+                    const data = snap.docs.map(d=>({id:d.id, ...d.data()}));
+                    data.sort((a,b) => new Date(b.date) - new Date(a.date)); // 客戶端排序
+                    setResults(data);
+                }
+            } catch(e) {
+                console.error(e);
+                alert("查詢發生錯誤: " + e.message);
+            }
             setLoading(false);
         };
 
@@ -436,7 +428,7 @@
             });
             alert('回報成功！等待店家確認。');
             setReportId(null);
-            search(); // refresh
+            search();
         };
 
         return (
@@ -460,7 +452,6 @@
                             </div>
                             <div className="text-sm text-gray-600 mb-2">{r.serviceName}</div>
                             
-                            {/* 匯款狀態區 */}
                             <div className="border-t pt-2 flex justify-between items-center mt-2">
                                 <span className="text-xs text-gray-500">訂金狀態：
                                     {r.paymentStatus==='verified' ? <span className="text-green-600 font-bold">已入帳</span> : 
@@ -472,7 +463,6 @@
                                 )}
                             </div>
                             
-                            {/* 回報輸入框 */}
                             {reportId === r.id && (
                                 <div className="mt-3 bg-gray-50 p-3 rounded flex gap-2">
                                     <input className="flex-1 p-1 border rounded text-sm" placeholder="帳號後五碼" value={last5} onChange={e=>setLast5(e.target.value)} />
@@ -488,7 +478,6 @@
         )
     }
 
-    // --- Admin Login & Panel ---
     const AdminLogin = ({ onBack, onLogin }) => {
         const [pin, setPin] = useState('');
         return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
@@ -499,12 +488,10 @@
         const [books, setBooks] = useState([]);
         const [editDates, setEditDates] = useState({kaohsiung:'', tainan:''});
         const [editSlots, setEditSlots] = useState({kaohsiung:'', tainan:''});
-        // 單日營業時間編輯
         const [selectedDay, setSelectedDay] = useState(null);
         const [daySlots, setDaySlots] = useState('');
-        const [msgModal, setMsgModal] = useState(null); // 訊息視窗
+        const [msgModal, setMsgModal] = useState(null); 
 
-        // 新增服務表單
         const [newSvc, setNewSvc] = useState({name:'', price:'', duration:'90'});
         const [newAddon, setNewAddon] = useState({name:'', price:'', duration:'0'});
 
@@ -524,17 +511,12 @@
               .orderBy('date', 'desc').limit(50).onSnapshot(s => setBooks(s.docs.map(d=>({id:d.id, ...d.data()}))));
         }, []);
 
-        // 營業時間與單日設定
         const handleDateClick = (locId, dStr) => {
-            // 切換日期開放狀態
             const current = editDates[locId].split(',').filter(x=>x);
             const set = new Set(current);
             if(set.has(dStr)) set.delete(dStr); else set.add(dStr);
             setEditDates({...editDates, [locId]: Array.from(set).sort().join(',')});
-            
-            // 開啟單日編輯
             setSelectedDay({ locId, date: dStr });
-            // 讀取該日設定 (如果有)
             const special = settings[locId]?.specialRules?.[dStr];
             setDaySlots(special ? special.join(',') : '');
         };
@@ -553,85 +535,38 @@
             if(!selectedDay) return;
             const { locId, date } = selectedDay;
             const currentRules = settings[locId]?.specialRules || {};
-            
-            if (!daySlots.trim()) {
-                delete currentRules[date]; // 清空代表刪除規則，使用預設
-            } else {
-                currentRules[date] = daySlots.split(',').map(x=>x.trim()).filter(x=>x);
-            }
-            
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(locId).update({
-                specialRules: currentRules
-            });
-            alert(`${date} 的特殊時段已儲存！`);
-            setSelectedDay(null);
+            if (!daySlots.trim()) delete currentRules[date]; else currentRules[date] = daySlots.split(',').map(x=>x.trim()).filter(x=>x);
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(locId).update({ specialRules: currentRules });
+            alert(`${date} 的特殊時段已儲存！`); setSelectedDay(null);
         };
 
-        // 訊息發送
         const sendTemplateMsg = async (tpl) => {
             if(!msgModal) return;
             const b = msgModal;
-            let text = tpl.text
-                .replace('{{date}}', b.date).replace('{{time}}', b.time)
-                .replace('{{location}}', b.locationName).replace('{{service}}', b.serviceName);
-            
-            if (window.liff?.isInClient()) {
-                await window.liff.sendMessages([{type:'text', text}]);
-                alert('訊息已傳送');
-            } else {
-                navigator.clipboard.writeText(text);
-                alert('已複製訊息，請貼上給顧客');
-            }
+            let text = tpl.text.replace('{{date}}', b.date).replace('{{time}}', b.time).replace('{{location}}', b.locationName).replace('{{service}}', b.serviceName);
+            if (window.liff?.isInClient()) { await window.liff.sendMessages([{type:'text', text}]); alert('訊息已傳送'); } 
+            else { navigator.clipboard.writeText(text); alert('已複製訊息，請貼上給顧客'); }
             setMsgModal(null);
         };
 
-        // 新增服務
         const submitSvc = async () => {
             if(!newSvc.name || !newSvc.price) return;
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({
-                name: newSvc.name,
-                price: Number(newSvc.price), // 支援負數
-                duration: Number(newSvc.duration)
-            });
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({ name: newSvc.name, price: Number(newSvc.price), duration: Number(newSvc.duration) });
             setNewSvc({name:'', price:'', duration:'90'});
         };
         
         const submitAddon = async () => {
             if(!newAddon.name || !newAddon.price) return;
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').add({
-                name: newAddon.name,
-                price: Number(newAddon.price),
-                duration: Number(newAddon.duration)
-            });
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').add({ name: newAddon.name, price: Number(newAddon.price), duration: Number(newAddon.duration) });
             setNewAddon({name:'', price:'', duration:'0'});
         };
 
-        // 渲染日曆
         const renderCalendar = (locId) => {
-            const today = new Date();
-            const year = today.getFullYear(); const month = today.getMonth();
-            const days = new Date(year, month+1, 0).getDate();
-            const start = new Date(year, month, 1).getDay();
-            const selected = new Set(editDates[locId].split(','));
-            const specialMap = settings[locId]?.specialRules || {};
-
+            const today = new Date(); const year = today.getFullYear(); const month = today.getMonth();
+            const days = new Date(year, month+1, 0).getDate(); const start = new Date(year, month, 1).getDay();
+            const selected = new Set(editDates[locId].split(',')); const specialMap = settings[locId]?.specialRules || {};
             return (
-                <div className="bg-white p-4 rounded-xl border shadow-sm">
-                    <div className="text-center mb-2 font-bold">{year}年 {month+1}月</div>
-                    <div className="grid grid-cols-7 gap-2 text-center text-xs">
-                        {Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}
-                        {Array.from({length:days}).map((_,i)=>{
-                            const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;
-                            const hasRule = specialMap[dStr];
-                            return (
-                                <div key={dStr} onClick={()=>handleDateClick(locId, dStr)} 
-                                    className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer border ${selected.has(dStr)?'bg-[#8d6e63] text-white': hasRule ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-100 hover:bg-gray-50'}`}>
-                                    {i+1}
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm"><div className="text-center mb-2 font-bold">{year}年 {month+1}月</div><div className="grid grid-cols-7 gap-2 text-center text-xs">{Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}{Array.from({length:days}).map((_,i)=>{const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;const hasRule = specialMap[dStr];return (<div key={dStr} onClick={()=>handleDateClick(locId, dStr)} className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer border ${selected.has(dStr)?'bg-[#8d6e63] text-white': hasRule ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-100 hover:bg-gray-50'}`}>{i+1}</div>)})}</div></div>
             )
         };
 
@@ -657,9 +592,7 @@
                                 <div key={b.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-sm">
                                     <div className="flex justify-between mb-2">
                                         <div className="font-bold text-lg text-[#8d6e63]">{b.date} {b.time}</div>
-                                        <div className={`px-2 py-1 rounded text-xs ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>
-                                            {b.status==='confirmed'?'已確認':b.status==='cancelled'?'已取消':'待確認'}
-                                        </div>
+                                        <div className={`px-2 py-1 rounded text-xs ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{b.status==='confirmed'?'已確認':b.status==='cancelled'?'已取消':'待確認'}</div>
                                     </div>
                                     <div className="space-y-1 text-gray-600">
                                         <div>{b.locationName}・{b.serviceName}</div>
@@ -678,25 +611,16 @@
                         </div>
                     )}
 
-                    {/* 常用訊息 Modal */}
                     {msgModal && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                             <div className="bg-white w-full max-w-sm rounded-xl p-4">
                                 <h3 className="font-bold mb-4">選擇傳送訊息</h3>
-                                <div className="space-y-2">
-                                    {MSG_TEMPLATES.map((t,i) => (
-                                        <button key={i} onClick={()=>sendTemplateMsg(t)} className="w-full text-left p-3 border rounded hover:bg-gray-50">
-                                            <div className="font-bold text-[#5d4037]">{t.title}</div>
-                                            <div className="text-xs text-gray-400 truncate">{t.text}</div>
-                                        </button>
-                                    ))}
-                                </div>
+                                <div className="space-y-2">{MSG_TEMPLATES.map((t,i) => (<button key={i} onClick={()=>sendTemplateMsg(t)} className="w-full text-left p-3 border rounded hover:bg-gray-50"><div className="font-bold text-[#5d4037]">{t.title}</div><div className="text-xs text-gray-400 truncate">{t.text}</div></button>))}</div>
                                 <button onClick={()=>setMsgModal(null)} className="mt-4 w-full py-2 text-gray-400">取消</button>
                             </div>
                         </div>
                     )}
 
-                    {/* 營業設定 Tab */}
                     {tab === 'set' && (
                         <div className="space-y-6">
                             {['kaohsiung','tainan'].map(locId => (
@@ -704,63 +628,21 @@
                                     <h3 className="font-bold mb-2 capitalize">{locId} 設定</h3>
                                     {renderCalendar(locId)}
                                     <div className="mt-2 text-xs text-gray-400 text-center">點擊日期設定開放/關閉，或設定單日時間</div>
-                                    <div className="mt-4">
-                                        <label className="text-xs font-bold block mb-1">預設時段 (全域)</label>
-                                        <input className="w-full border p-2 rounded text-sm" value={editSlots[locId]} onChange={e=>setEditSlots({...editSlots, [locId]:e.target.value})} />
-                                        <button onClick={()=>saveSettings(locId)} className="mt-2 w-full bg-[#8d6e63] text-white py-2 rounded text-sm">儲存基本設定</button>
-                                    </div>
+                                    <div className="mt-4"><label className="text-xs font-bold block mb-1">預設時段 (全域)</label><input className="w-full border p-2 rounded text-sm" value={editSlots[locId]} onChange={e=>setEditSlots({...editSlots, [locId]:e.target.value})} /><button onClick={()=>saveSettings(locId)} className="mt-2 w-full bg-[#8d6e63] text-white py-2 rounded text-sm">儲存基本設定</button></div>
                                 </div>
                             ))}
-                            
-                            {/* 單日設定 Modal */}
                             {selectedDay && (
                                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                                    <div className="bg-white w-full max-w-sm rounded-xl p-6">
-                                        <h3 className="font-bold mb-4 text-lg border-b pb-2">{selectedDay.date} 特殊設定</h3>
-                                        <p className="text-sm text-gray-500 mb-2">在此輸入該日的特殊營業時間，留空則依預設規則或關閉。</p>
-                                        <input className="w-full border p-3 rounded mb-4" placeholder="例如: 10:00, 14:00" value={daySlots} onChange={e=>setDaySlots(e.target.value)} />
-                                        <div className="flex gap-2">
-                                            <button onClick={()=>setSelectedDay(null)} className="flex-1 py-2 bg-gray-100 rounded">取消</button>
-                                            <button onClick={saveDayRule} className="flex-1 py-2 bg-[#8d6e63] text-white rounded">儲存單日</button>
-                                        </div>
-                                    </div>
+                                    <div className="bg-white w-full max-w-sm rounded-xl p-6"><h3 className="font-bold mb-4 text-lg border-b pb-2">{selectedDay.date} 特殊設定</h3><p className="text-sm text-gray-500 mb-2">在此輸入該日的特殊營業時間，留空則依預設規則或關閉。</p><input className="w-full border p-3 rounded mb-4" placeholder="例如: 10:00, 14:00" value={daySlots} onChange={e=>setDaySlots(e.target.value)} /><div className="flex gap-2"><button onClick={()=>setSelectedDay(null)} className="flex-1 py-2 bg-gray-100 rounded">取消</button><button onClick={saveDayRule} className="flex-1 py-2 bg-[#8d6e63] text-white rounded">儲存單日</button></div></div>
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {/* 服務項目 Tab */}
                     {tab === 'svc' && (
                         <div className="space-y-6">
-                            <div className="bg-white p-4 rounded-xl shadow-sm border">
-                                <h3 className="font-bold mb-3 text-[#4e342e]">新增服務</h3>
-                                <div className="space-y-2">
-                                    <input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newSvc.name} onChange={e=>setNewSvc({...newSvc, name:e.target.value})} />
-                                    <div className="flex gap-2">
-                                        <input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (可負數)" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})} />
-                                        <input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})} />
-                                    </div>
-                                    <button onClick={submitSvc} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button>
-                                </div>
-                                <div className="mt-4 border-t pt-4 space-y-2">
-                                    {services.map(s=><div key={s.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{s.name} (${s.price}) {s.duration}分</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}
-                                </div>
-                            </div>
-
-                            <div className="bg-white p-4 rounded-xl shadow-sm border">
-                                <h3 className="font-bold mb-3 text-[#4e342e]">新增加購</h3>
-                                <div className="space-y-2">
-                                    <input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newAddon.name} onChange={e=>setNewAddon({...newAddon, name:e.target.value})} />
-                                    <div className="flex gap-2">
-                                        <input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格" value={newAddon.price} onChange={e=>setNewAddon({...newAddon, price:e.target.value})} />
-                                        <input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newAddon.duration} onChange={e=>setNewAddon({...newAddon, duration:e.target.value})} />
-                                    </div>
-                                    <button onClick={submitAddon} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button>
-                                </div>
-                                <div className="mt-4 border-t pt-4 space-y-2">
-                                    {addons.map(a=><div key={a.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{a.name} (+${a.price})</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').doc(a.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}
-                                </div>
-                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增服務</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newSvc.name} onChange={e=>setNewSvc({...newSvc, name:e.target.value})} /><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (可負數)" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})} /></div><button onClick={submitSvc} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{services.map(s=><div key={s.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{s.name} (${s.price}) {s.duration}分</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增加購</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newAddon.name} onChange={e=>setNewAddon({...newAddon, name:e.target.value})} /><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格" value={newAddon.price} onChange={e=>setNewAddon({...newAddon, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newAddon.duration} onChange={e=>setNewAddon({...newAddon, duration:e.target.value})} /></div><button onClick={submitAddon} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{addons.map(a=><div key={a.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{a.name} (+${a.price})</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').doc(a.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
                         </div>
                     )}
                 </div>
