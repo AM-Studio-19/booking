@@ -15,6 +15,8 @@
     .option-btn:hover { @apply border-[#d7ccc8] bg-[#faf9f8] shadow-md; }
     .option-btn.active { @apply border-[#8d6e63] bg-[#efebe9] text-[#3e2723] font-bold ring-1 ring-[#8d6e63]; }
     
+    .big-card-btn { @apply flex flex-col items-center justify-center p-6 border-2 border-[#e5e7eb] rounded-2xl bg-white hover:border-[#8d6e63] hover:bg-[#efebe9] transition-all shadow-sm aspect-square cursor-pointer; }
+    
     .guest-block { @apply border-l-4 border-[#8d6e63] pl-4 mb-8 relative; }
     
     .spinner {
@@ -30,7 +32,7 @@
     .date-cell.has-rule { border-bottom: 2px solid #d97706; }
     
     /* 狀態點與標籤 */
-    .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin: 0 1px; }
+    .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin: 0 1px; }
     .dot.green { background-color: #10b981; }
     .dot.yellow { background-color: #f59e0b; }
     
@@ -104,7 +106,7 @@
         auth = firebase.auth();
     } catch (e) { console.error(e); }
 
-    // --- Icons (修復語法錯誤) ---
+    // --- Icons ---
     const Icon = ({ path, size = 20, className="" }) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
     );
@@ -128,7 +130,6 @@
         up: <polyline points="18 15 12 9 6 15"/>,
         down: <polyline points="6 9 12 15 18 9"/>,
         back: <path d="M19 12H5m7 7l-7-7 7-7"/>,
-        // ✅ 修復：使用 <>...</> 包覆多個元素
         cross: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
     };
 
@@ -137,7 +138,6 @@
       { id: 'kaohsiung', name: '高雄工作室' }
     ];
     const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
-    
     const DEFAULT_TEMPLATES = [
         { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
         { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
@@ -204,84 +204,95 @@
             </button>
         );
 
-        return (
-            <div className="bg-white p-4 rounded-xl border-2 border-[#8d6e63] shadow-lg animate-fade-in relative">
-                <BackBtn/>
-                
-                {stage === 'main' && (
-                    <div className="space-y-3">
-                        <p className="text-sm text-gray-500 font-bold">請選擇服務項目：</p>
-                        {MAIN_CATS.map(c => <button key={c} onClick={()=>handleMain(c)} className="option-btn text-lg font-bold">{c} <Icon path={Icons.chevronRight}/></button>)}
-                    </div>
-                )}
-                
-                {stage === 'sub' && (
-                    <div className="space-y-3">
-                        <h3 className="font-bold text-xl text-[#4e342e] mb-2">{mainCat}</h3>
-                        <p className="text-sm text-gray-500">請選擇類型：</p>
-                        {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn text-lg">{t} <Icon path={Icons.chevronRight}/></button>)}
-                    </div>
-                )}
-                
-                {stage === 'confirm' && (
-                    <div className="space-y-4">
-                        <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - {subCat}</h3>
-                        {mainCat === '霧唇' && subCat === '首次' && (
-                            <div className="p-4 bg-gray-50 border-2 border-[#d7ccc8] rounded-xl cursor-pointer" onClick={()=>setIsDarkLip(!isDarkLip)}>
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-6 h-6 rounded border flex items-center justify-center ${isDarkLip?'bg-[#8d6e63] border-[#8d6e63]':'bg-white border-gray-400'}`}>
-                                        {isDarkLip && <Icon path={Icons.check} className="text-white" size={16}/>}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="font-bold text-[#5d4037]">👄 需要烏唇/淡色處理？</div>
-                                        <div className="text-xs text-gray-500">若唇色較深或暗沈，需先進行淡色處理 (+$1300)</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <div className="py-4 text-center bg-[#efebe9] rounded-xl">
-                            <div className="text-sm text-gray-500">預估金額</div>
-                            <div className="text-3xl font-bold text-[#8d6e63]">
-                                ${isDarkLip ? (sortedServices.find(s => s.category === mainCat && s.type === subCat)?.price || 0) + 1300 : (sortedServices.find(s => s.category === mainCat && s.type === subCat)?.price || 0)}
-                            </div>
-                        </div>
-                        <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl shadow-lg font-bold text-lg">確認選擇此項目</button>
-                    </div>
-                )}
-                
-                {stage === 'session' && (
-                    <div className="space-y-3">
-                        <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - 補色</h3>
-                        <p className="text-sm text-gray-500">是第幾次補色呢？</p>
-                        {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn text-lg">{s} <Icon path={Icons.chevronRight}/></button>)}
-                    </div>
-                )}
-                
-                {stage === 'time' && (
-                    <div className="space-y-3">
-                        <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - {session}</h3>
-                        <p className="text-sm text-gray-500">距離上次施作多久了？</p>
-                        {(() => {
-                             const ranges = sortedServices
-                                .filter(s => s.category === mainCat && s.type === '補色' && s.session === session)
-                                .map(s => ({ label: s.timeRange, price: s.price }))
-                                .filter((v,i,a) => a.findIndex(t => t.label === v.label) === i);
-                             
-                             if(ranges.length === 0) return <div className="text-gray-400 py-4">尚無報價資料</div>;
-
-                             return ranges.map(r => (
-                                <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn flex justify-between items-center group">
-                                    <span className="font-medium text-lg">{r.label}</span>
-                                    <span className="font-bold text-[#8d6e63] text-lg group-hover:scale-110 transition-transform">${r.price}</span>
-                                </button>
-                            ));
-                        })()}
-                    </div>
-                )}
+        if(stage === 'main') return (
+            <div className="space-y-4 animate-fade-in">
+                <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-500 font-bold">請選擇服務項目：</p>
+                    <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600">取消</button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    {MAIN_CATS.map(c => (
+                        <button key={c} onClick={()=>handleMain(c)} className="big-card-btn">
+                            <div className="text-3xl mb-2">{c.includes('眉') ? '🤨' : '👄'}</div>
+                            <div className="font-bold text-lg text-[#5d4037]">{c}</div>
+                        </button>
+                    ))}
+                </div>
             </div>
         );
+        
+        if(stage === 'sub') return (
+            <div className="space-y-3 animate-fade-in">
+                <BackBtn/>
+                <h3 className="font-bold text-xl text-[#4e342e] mb-2">{mainCat}</h3>
+                <p className="text-sm text-gray-500">請選擇類型：</p>
+                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn text-lg font-bold">{t} <Icon path={Icons.chevronRight}/></button>)}
+            </div>
+        );
+        
+        if(stage === 'confirm') {
+            const baseSvc = sortedServices.find(s => s.category === mainCat && s.type === subCat);
+            const basePrice = baseSvc ? baseSvc.price : 0;
+            return (
+                <div className="animate-fade-in">
+                    <BackBtn/>
+                    <h3 className="font-bold mb-4 text-lg text-[#4e342e]">{mainCat} - {subCat}</h3>
+                    {mainCat === '霧唇' && subCat === '首次' && (
+                        <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors" onClick={()=>setIsDarkLip(!isDarkLip)}>
+                            <label className="flex items-center gap-3 cursor-pointer pointer-events-none">
+                                <div className={`w-6 h-6 rounded border flex items-center justify-center ${isDarkLip?'bg-[#8d6e63] border-[#8d6e63]':'bg-white border-gray-400'}`}>
+                                    {isDarkLip && <Icon path={Icons.check} className="text-white" size={16}/>}
+                                </div>
+                                <div>
+                                    <div className="font-bold text-[#5d4037]">👄 需要烏唇/淡色處理？</div>
+                                    <div className="text-xs text-gray-500">若唇色較深或暗沈，需先進行淡色處理 (+$1300)</div>
+                                </div>
+                            </label>
+                        </div>
+                    )}
+                    <div className="mb-6 text-center">
+                        <div className="text-sm text-gray-500">預估金額</div>
+                        <div className="text-3xl font-bold text-[#8d6e63]">
+                            ${isDarkLip ? basePrice + 1300 : basePrice}
+                        </div>
+                    </div>
+                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl shadow-lg font-bold text-lg hover:bg-[#795548] transition-colors">確認選擇此項目</button>
+                </div>
+            )
+        }
+        
+        if(stage === 'session') return (
+            <div className="space-y-3 animate-fade-in">
+                <BackBtn/>
+                <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - 補色</h3>
+                <p className="text-sm text-gray-500">是第幾次補色呢？</p>
+                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn text-lg">{s} <Icon path={Icons.chevronRight}/></button>)}
+            </div>
+        );
+        
+        if(stage === 'time') {
+            const ranges = sortedServices
+                .filter(s => s.category === mainCat && s.type === '補色' && s.session === session)
+                .map(s => ({ label: s.timeRange, price: s.price }))
+                .filter((v,i,a) => a.findIndex(t => t.label === v.label) === i);
+            
+            return (
+                <div className="space-y-3 animate-fade-in">
+                    <BackBtn/>
+                    <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - {session}</h3>
+                    <p className="text-sm text-gray-500">距離上次施作多久了？</p>
+                    {ranges.length > 0 ? ranges.map(r => (
+                        <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn flex justify-between items-center group">
+                            <span className="font-medium text-lg">{r.label}</span>
+                            <span className="font-bold text-[#8d6e63] text-lg group-hover:scale-110 transition-transform">${r.price}</span>
+                        </button>
+                    )) : <div className="text-gray-400 text-center py-8 bg-gray-50 rounded-xl">尚無此時段的報價資料</div>}
+                </div>
+            );
+        }
     };
 
+    // --- Status Check Component ---
     const StatusCheck = ({ user, onBack }) => {
         const [phone, setPhone] = useState('');
         const [results, setResults] = useState([]);
@@ -353,14 +364,15 @@
         )
     };
 
-    // --- Admin Components ---
+    // --- Admin Login ---
     const AdminLogin = ({ onBack, onLogin }) => {
         const [pin, setPin] = useState('');
         return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
     }
 
+    // --- Admin Panel ---
     const AdminPanel = ({ user, settings, onBack, services, addons, discounts }) => {
-        const [tab, setTab] = useState('cal'); // default to calendar
+        const [tab, setTab] = useState('cal'); 
         const [filterStatus, setFilterStatus] = useState('all');
         const [books, setBooks] = useState([]);
         const [editDates, setEditDates] = useState({kaohsiung:'', tainan:''});
@@ -601,6 +613,15 @@
              if(!newDiscName) return;
              await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts').add({ name: newDiscName, amount: Number(newDiscAmount) });
              setNewDiscName('');
+        };
+
+        const renderSettingsCalendar = (locId) => {
+             const today = new Date(); const year = today.getFullYear(); const month = today.getMonth();
+             const days = new Date(year, month+1, 0).getDate(); const start = new Date(year, month, 1).getDay();
+             const selected = new Set(editDates[locId].split(',')); const specialMap = settings[locId]?.specialRules || {};
+             return (
+                 <div className="bg-white p-4 rounded-xl border shadow-sm"><div className="text-center mb-2 font-bold">{year}年 {month+1}月</div><div className="grid grid-cols-7 gap-2 text-center text-xs">{Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}{Array.from({length:days}).map((_,i)=>{const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;const hasRule = specialMap[dStr];return (<div key={dStr} onClick={()=>handleDateClick(locId, dStr)} className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer border ${selected.has(dStr)?'bg-[#8d6e63] text-white': hasRule ? 'border-orange-400 bg-orange-50 text-orange-700 date-cell has-rule' : 'border-gray-100 hover:bg-gray-50'}`}>{i+1}</div>)})}</div></div>
+             )
         };
 
         const filteredBooks = books.filter(b => {
@@ -921,6 +942,12 @@
           g[idx].services = g[idx].services.filter(s => s.id !== sId);
           setGuests(g);
       };
+      const toggleGuestAddon = (idx, ad) => {
+          const g = [...guests];
+          const has = g[idx].addons.find(a=>a.id===ad.id);
+          g[idx].addons = has ? g[idx].addons.filter(a=>a.id!==ad.id) : [...g[idx].addons, ad];
+          setGuests(g);
+      };
       
       // Toggle selector visibility
       const [showSelector, setShowSelector] = useState(null); // guest index or null
@@ -1060,7 +1087,7 @@
                                   {/* Add Service Button - Replaces old "Change" button */}
                                   {showSelector !== i ? (
                                       <button onClick={()=>setShowSelector(i)} className="w-full py-4 bg-white border-2 border-dashed border-[#8d6e63] text-[#8d6e63] rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9] transition-colors font-bold">
-                                          <Icon path={Icons.plus}/> {g.services.length>0 ? '新增服務項目' : '選擇服務項目'}
+                                          <Icon path={Icons.plus}/> {g.services.length>0 ? '再加一項服務' : '新增服務項目'}
                                       </button>
                                   ) : (
                                       <div className="mt-2">
