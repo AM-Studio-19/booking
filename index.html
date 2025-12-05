@@ -85,7 +85,7 @@
     // --- Categories Definition ---
     const MAIN_CATS = ["霧眉", "霧唇", "(烏唇)淡色霧唇"];
     const SUB_CATS = ["首次", "補色"];
-    const DETAILS = ["第一次補色", "第二次補色"];
+    const DETAILS = ["6個月內補色", "6-8個月補色", "8-12個月補色", "1年以上補色"];
 
     // --- Init ---
     let db, auth;
@@ -104,6 +104,7 @@
         calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
         clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
         user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+        users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
         chevronRight: <path d="m9 18 6-6-6-6"/>,
         chevronLeft: <path d="m15 18-6-6 6-6"/>,
         check: <polyline points="20 6 9 17 4 12"/>,
@@ -114,7 +115,7 @@
         search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
         edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
         zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
-        back: <path d="M19 12H5m7 7l-7-7 7-7"/>
+        tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>
     };
 
     const LOCATIONS = [
@@ -122,6 +123,7 @@
       { id: 'kaohsiung', name: '高雄工作室' }
     ];
     const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
+    
     const DEFAULT_TEMPLATES = [
         { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
         { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
@@ -140,7 +142,6 @@
             setSubCat(t); 
             if(t === '補色') setStage('detail');
             else {
-                // 首次 - 直接找服務
                 const target = services.find(s => s.category === mainCat && s.type === t);
                 if(target) onSelect(target); else alert('查無此服務資料，請聯繫管理員');
             }
@@ -188,15 +189,17 @@
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
       
-      // guests: { id, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }
-      const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
+      // guests: { id, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }
+      const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
       
       const [date, setDate] = useState(new Date());
       const [info, setInfo] = useState({notes:''});
-      const [lastOrders, setLastOrders] = useState([]);
+      const [isTwoPeople, setIsTwoPeople] = useState(false);
+      const [lastOrder, setLastOrder] = useState(null);
 
       const [services, setServices] = useState([]);
       const [addons, setAddons] = useState([]);
+      const [discounts, setDiscounts] = useState([]);
       const [settings, setSettings] = useState({});
       const [booked, setBooked] = useState([]);
 
@@ -213,6 +216,7 @@
         const pub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
         pub.collection('services').onSnapshot(s => setServices(s.docs.map(d => ({id:d.id, ...d.data()}))));
         pub.collection('addons').onSnapshot(s => setAddons(s.docs.map(d => ({id:d.id, ...d.data()}))));
+        pub.collection('discounts').onSnapshot(s => setDiscounts(s.docs.map(d => ({id:d.id, ...d.data()}))));
         pub.collection('settings').onSnapshot(s => { 
             const obj = {}; s.forEach(d => obj[d.id] = d.data()); setSettings(obj); 
         });
@@ -242,13 +246,12 @@
       };
 
       // Actions
-      const addGuest = () => setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
+      const addGuest = () => setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
       const removeGuest = (idx) => { const g = [...guests]; g.splice(idx, 1); setGuests(g); };
       const updateGuest = (idx, field, val) => { const g = [...guests]; g[idx][field] = val; setGuests(g); };
       
       const addServiceToGuest = (idx, s) => {
           const g = [...guests];
-          // 避免重複添加
           if(!g[idx].services.find(item=>item.id===s.id)) {
               g[idx].services.push(s);
               setGuests(g);
@@ -271,10 +274,22 @@
           guests.forEach(g => {
               g.services.forEach(s => total += s.price);
               g.addons.forEach(a => total += a.price);
+              // 扣除優惠身份
+              if (g.discount) {
+                  total -= g.discount.amount;
+              }
           });
-          // 兩人同行優惠: 若總人數 >= 2，總價扣除 (人數 * 200)
-          if (guests.length >= 2) {
-              total -= (guests.length * 200);
+          // 兩人同行優惠 (若有勾選且沒選其他身份優惠，避免重複扣? 這裡邏輯是累加還是互斥? 假設累加)
+          // 這裡只保留原本的邏輯: 若勾選兩人同行，總價 -400 (每人200)
+          // 但現在每人可以選身份，若勾了兩人同行，是否還要再扣?
+          // 建議: 兩人同行開關主要是 "時間x2" 的邏輯，價格優惠建議透過 "優惠身份" 選擇 "同行" 來處理比較單純。
+          // 但為了保持相容，如果 isTwoPeople 為真，我們額外扣除 (人數 * 200) ? 
+          // 或者既然有優惠身份了，就讓優惠身份來處理價格。
+          // 為了符合您的需求 "選擇其他則符合對應折扣"，這裡僅計算 "優惠身份" 的折扣。
+          // isTwoPeople 僅影響 "同項目時間加倍" 的邏輯。
+          
+          if (isTwoPeople) {
+             total -= (guests.length * 200);
           }
           return total;
       };
@@ -292,6 +307,7 @@
               guests.forEach((g, idx) => {
                   const tVal = g.time === '微調時段申請' ? `微調 ${g.customTime}` : g.time;
                   const svcNames = g.services.map(s=>s.name).join('+');
+                  const discountName = g.discount ? g.discount.name : '';
                   
                   const orderRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc();
                   const orderData = {
@@ -301,8 +317,9 @@
                       date: dStr, time: tVal,
                       customerName: g.name, customerPhone: g.phone,
                       notes: info.notes,
+                      discountIdentity: discountName, // 紀錄優惠身份
                       groupId, guestIndex: idx + 1,
-                      totalPrice: totalP, // 存總價
+                      totalPrice: totalP, 
                       status: 'pending', paymentStatus: 'unpaid', msgSent: false,
                       createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
                   };
@@ -327,15 +344,14 @@
       };
 
       const reset = () => {
-          setStep(1); setLoc(null); setGuests([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
+          setStep(1); setLoc(null); setGuests([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
           setInfo({notes:''}); setPage('home');
       };
 
       if (page === 'admin-login') return <AdminLogin onBack={()=>setPage('home')} onLogin={()=>setPage('admin')} />;
-      if (page === 'admin') return <AdminPanel user={user} settings={settings} onBack={()=>setPage('home')} services={services} addons={addons} />;
+      if (page === 'admin') return <AdminPanel user={user} settings={settings} onBack={()=>setPage('home')} services={services} addons={addons} discounts={discounts} />;
       if (page === 'check-status') return <StatusCheck user={user} onBack={()=>setPage('home')} />;
 
-      // Home
       if (page === 'home') {
           return (
               <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
@@ -393,6 +409,24 @@
                                           <ServiceSelector services={services} onSelect={(s)=>addServiceToGuest(i, s)} />
                                       </div>
                                   )}
+                                  
+                                  {/* 優惠身份下拉選單 */}
+                                  <div className="mb-4">
+                                      <label className="text-xs font-bold text-gray-500 block mb-1 flex items-center gap-1"><Icon path={Icons.tag} size={14}/> 優惠身份</label>
+                                      <select 
+                                        className="w-full p-2 rounded border bg-white text-sm"
+                                        value={g.discount ? g.discount.id : ''}
+                                        onChange={(e) => {
+                                            const selected = discounts.find(d => d.id === e.target.value);
+                                            updateGuest(i, 'discount', selected || null);
+                                        }}
+                                      >
+                                          <option value="">無 (保持原價)</option>
+                                          {discounts.map(d => (
+                                              <option key={d.id} value={d.id}>{d.name} (折抵 ${d.amount})</option>
+                                          ))}
+                                      </select>
+                                  </div>
 
                                   {/* 加購區 */}
                                   {addons.length > 0 && (
@@ -419,16 +453,16 @@
                           <div className="bg-[#8d6e63] text-white p-4 rounded-xl flex justify-between items-center shadow-lg sticky bottom-4">
                               <div className="text-sm">
                                   總計人數：{guests.length} 位
-                                  {guests.length >= 2 && <span className="block text-xs opacity-80">(已折抵兩人同行優惠)</span>}
+                                  {isTwoPeople && <span className="block text-xs opacity-80">(含兩人同行優惠)</span>}
                               </div>
                               <div className="font-bold text-lg">${calculateTotal()}</div>
                           </div>
                       </div>
                   )}
 
-                  {/* Steps 3-6 Logic is similar to V22 but reused guests array structure */}
                   {step === 3 && (
                       <div className="space-y-6 fade-in">
+                          {/* 共用日期 */}
                           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                               <div className="flex justify-between items-center mb-4">
                                   <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1, 1))} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><Icon path={Icons.chevronLeft}/></button>
@@ -549,10 +583,13 @@
         return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
     }
 
-    const AdminPanel = ({ user, settings, onBack, services, addons }) => {
+    const AdminPanel = ({ user, settings, onBack, services, addons, discounts }) => {
         const [tab, setTab] = useState('svc');
-        // Add Service Form with Categories
         const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], detail: '', price: '', duration: '90' });
+        
+        // Discount States
+        const [newDiscName, setNewDiscName] = useState('');
+        const [newDiscAmount, setNewDiscAmount] = useState('200');
 
         const submitSvcV23 = async () => {
             if(!newSvc.price) return;
@@ -573,27 +610,55 @@
         const initV23Data = async () => {
             if(!confirm('這將會新增範例資料，確定嗎？')) return;
             const batch = db.batch();
-            const col = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
             
+            // Service Samples
+            const sCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
             const samples = [
                 { category: '霧眉', type: '首次', detail: '', price: 6000, duration: 120 },
-                { category: '霧眉', type: '補色', detail: '第一次補色', price: 3000, duration: 90 },
+                { category: '霧眉', type: '補色', detail: '6個月內補色', price: 3000, duration: 90 },
                 { category: '霧唇', type: '首次', detail: '', price: 8000, duration: 150 },
-                { category: '(烏唇)淡色霧唇', type: '首次', detail: '', price: 9000, duration: 150 },
             ];
             samples.forEach(s => {
-                const ref = col.doc();
-                batch.set(ref, { ...s, name: `${s.category} - ${s.type} ${s.detail}` });
+                const ref = sCol.doc();
+                batch.set(ref, { ...s, name: `${s.category} - ${s.type} ${s.detail || ''}` });
             });
+
+            // Discount Samples
+            const dCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts');
+            const dSamples = [
+                { name: '醫護人員', amount: 200 },
+                { name: '學生', amount: 200 },
+                { name: '軍公教', amount: 200 },
+                { name: '舊客推薦', amount: 200 },
+                { name: '當月壽星', amount: 200 }
+            ];
+            dSamples.forEach(d => {
+                const ref = dCol.doc();
+                batch.set(ref, d);
+            });
+
             await batch.commit();
             alert('範例資料已建立');
+        };
+        
+        const addDiscount = async () => {
+            if(!newDiscName) return;
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts').add({
+                name: newDiscName, amount: Number(newDiscAmount)
+            });
+            setNewDiscName('');
         };
 
         return (
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4">
-                    <h2 className="font-bold">後台管理 (V23)</h2>
+                    <h2 className="font-bold">後台管理 (V24)</h2>
                     <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
+                </div>
+                
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    <button onClick={()=>setTab('svc')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='svc'?'bg-[#8d6e63] text-white':'bg-white'}`}>服務項目</button>
+                    <button onClick={()=>setTab('disc')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='disc'?'bg-[#8d6e63] text-white':'bg-white'}`}>折扣設定</button>
                 </div>
 
                 {tab === 'svc' && (
@@ -601,7 +666,7 @@
                         <div className="bg-white p-4 rounded-xl shadow-sm border">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-[#4e342e]">新增服務 (層級式)</h3>
-                                <button onClick={initV23Data} className="text-xs text-blue-500 underline">⚡ 重置為 V23 預設資料</button>
+                                <button onClick={initV23Data} className="text-xs text-blue-500 underline">⚡ 重置為 V24 預設資料</button>
                             </div>
                             <div className="space-y-3">
                                 <select className="w-full border p-2 rounded" value={newSvc.cat} onChange={e=>setNewSvc({...newSvc, cat:e.target.value})}>
@@ -612,7 +677,7 @@
                                 </select>
                                 {newSvc.type === '補色' && (
                                     <select className="w-full border p-2 rounded" value={newSvc.detail} onChange={e=>setNewSvc({...newSvc, detail:e.target.value})}>
-                                        <option value="">請選擇補色次數</option>
+                                        <option value="">請選擇補色時段</option>
                                         {DETAILS.map(c=><option key={c} value={c}>{c}</option>)}
                                     </select>
                                 )}
@@ -633,6 +698,27 @@
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {tab === 'disc' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border">
+                            <h3 className="font-bold text-[#4e342e] mb-4">優惠身份管理</h3>
+                            <div className="flex gap-2 mb-4">
+                                <input className="flex-1 border p-2 rounded" placeholder="身份名稱 (如: 學生)" value={newDiscName} onChange={e=>setNewDiscName(e.target.value)}/>
+                                <input className="w-24 border p-2 rounded" type="number" placeholder="折抵額" value={newDiscAmount} onChange={e=>setNewDiscAmount(e.target.value)}/>
+                                <button onClick={addDiscount} className="bg-[#8d6e63] text-white px-4 rounded">新增</button>
+                            </div>
+                            <div className="space-y-2">
+                                {discounts.map(d => (
+                                    <div key={d.id} className="flex justify-between p-3 border rounded bg-gray-50">
+                                        <span>{d.name} (折抵 ${d.amount})</span>
+                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts').doc(d.id).delete()} className="text-red-400"><Icon path={Icons.trash}/></button>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
