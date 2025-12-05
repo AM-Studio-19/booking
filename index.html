@@ -106,7 +106,6 @@
         settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>,
         trash: <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>,
         plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
-        minus: <><line x1="5" y1="12" x2="19" y2="12"/></>,
         msg: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
         search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
         edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
@@ -132,12 +131,11 @@
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
       
-      // --- V21 多人狀態 ---
-      // guests array: { id, services: [], addons: [], time: null, customTime: '' }
-      const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '' }]);
+      // guests: { id, services, addons, time, customTime, name, phone }
+      const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
       
       const [date, setDate] = useState(new Date());
-      const [info, setInfo] = useState({name:'', phone:'', notes:''});
+      const [info, setInfo] = useState({notes:''}); // Global notes only
       const [lastOrders, setLastOrders] = useState([]);
 
       const [services, setServices] = useState([]);
@@ -146,6 +144,10 @@
       const [booked, setBooked] = useState([]);
 
       useEffect(() => {
+        // 檢查網址是否有 ?p=check
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('p') === 'check') setPage('check-status');
+
         auth.signInAnonymously().catch(e => console.warn(e));
         if (window.liff) window.liff.init({ liffId: LIFF_ID });
         return auth.onAuthStateChanged(setUser);
@@ -186,7 +188,7 @@
 
       // --- Guest Actions ---
       const addGuest = () => {
-          setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '' }]);
+          setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
       };
       const removeGuest = (idx) => {
           const newG = [...guests];
@@ -223,10 +225,9 @@
       const handleSubmit = async () => {
           if (!user) return alert('連線中...');
           
-          // 批次寫入
           const batch = db.batch();
           const dStr = date.toISOString().split('T')[0];
-          const groupId = Date.now().toString(); // 同一批訂單群組
+          const groupId = Date.now().toString(); 
           const newOrders = [];
 
           try {
@@ -240,10 +241,10 @@
                       serviceId: g.services.map(s=>s.id), serviceName: svcNames,
                       addons: g.addons, 
                       date: dStr, time: tVal,
-                      customerName: info.name + (guests.length>1 ? ` (${idx+1})` : ''), 
-                      customerPhone: info.phone, notes: info.notes,
-                      groupId, 
-                      totalPrice: calculateTotal(), // 存總價供參考
+                      customerName: g.name, customerPhone: g.phone,
+                      notes: info.notes,
+                      groupId, guestIndex: idx + 1, // 標記第幾位
+                      totalPrice: calculateTotal(), 
                       status: 'pending', paymentStatus: 'unpaid', msgSent: false,
                       createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
                   };
@@ -256,18 +257,22 @@
               
               // LIFF Msg
               const totalStr = `$${calculateTotal()}`;
-              const msg = `【預約申請通知】\n📍 ${loc.name}\n📅 ${dStr}\n👤 預約人數：${guests.length}位\n💰 總金額：${totalStr}\n⚠️ 請等候店家確認，並完成訂金支付 (每人$${BANK_INFO.amountPerPerson})。`;
+              const reportLink = `https://liff.line.me/${LIFF_ID}?p=check`;
+              const msg = `【預約申請通知】\n📍 ${loc.name}\n📅 ${dStr}\n👤 預約人數：${guests.length}位\n💰 總金額：${totalStr}\n⚠️ 請完成訂金支付(每人$${BANK_INFO.amountPerPerson})。\n\n🔗 點此回報匯款：\n${reportLink}`;
               
               if (window.liff?.isInClient()) {
                   try { await window.liff.sendMessages([{ type: 'text', text: msg }]); } catch (err) {}
+              } else {
+                  // 若非 LIFF，跳出複製提示
+                  alert("預約已送出！\n請複製以下連結進行匯款回報：\n" + reportLink);
               }
               setStep(6);
           } catch (e) { alert('Error: ' + e.message); }
       };
 
       const reset = () => {
-          setStep(1); setLoc(null); setGuests([{ id: 1, services: [], addons: [], time: null, customTime: '' }]);
-          setInfo({name:'', phone:'', notes:''}); setPage('home');
+          setStep(1); setLoc(null); setGuests([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
+          setInfo({notes:''}); setPage('home');
       };
 
       if (page === 'admin-login') return <AdminLogin onBack={()=>setPage('home')} onLogin={()=>setPage('admin')} />;
@@ -376,7 +381,6 @@
                                   <div className="text-red-500 text-xs text-center bg-red-50 p-2 rounded">⚠️ 本店為一人服務，多人同行請選擇連續時段</div>
                                   {guests.map((g, idx) => {
                                       const myTime = g.time;
-                                      // 找出已被其他人選走的時間 (包含資料庫 + 當前其他同伴)
                                       const taken = booked.concat(guests.filter((_, i)=>i!==idx).map(og=>og.time).filter(t=>t));
                                       
                                       return (
@@ -417,9 +421,24 @@
                               <div className="flex justify-between text-sm border-t pt-2 mt-2"><span className="text-gray-500">預估總額</span><span className="font-bold text-[#8d6e63]">${calculateTotal()}</span></div>
                           </div>
                           <div className="space-y-4">
-                              <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">聯絡人姓名</label><input className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63]" placeholder="請輸入真實姓名" value={info.name} onChange={e=>setInfo({...info,name:e.target.value})} /></div>
-                              <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">聯絡電話</label><input className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63]" type="tel" placeholder="09xx-xxx-xxx" value={info.phone} onChange={e=>setInfo({...info,phone:e.target.value})} /></div>
-                              <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">備註</label><textarea className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63] h-24 resize-none" placeholder="其他同行者姓名..." value={info.notes} onChange={e=>setInfo({...info,notes:e.target.value})} /></div>
+                              {guests.map((g, i) => (
+                                  <div key={g.id} className="bg-white p-4 rounded-lg border">
+                                      <h3 className="text-sm font-bold text-[#5d4037] mb-3">第 {i+1} 位顧客資料</h3>
+                                      <div className="space-y-3">
+                                          <div>
+                                              <label className="block text-xs font-bold text-gray-500 mb-1">姓名</label>
+                                              <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" 
+                                                  placeholder="請輸入姓名" value={g.name} onChange={e=>updateGuest(i, 'name', e.target.value)} />
+                                          </div>
+                                          <div>
+                                              <label className="block text-xs font-bold text-gray-500 mb-1">電話</label>
+                                              <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" 
+                                                  type="tel" placeholder="09xx-xxx-xxx" value={g.phone} onChange={e=>updateGuest(i, 'phone', e.target.value)} />
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                              <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">其他備註</label><textarea className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63] h-24 resize-none" placeholder="需卸甲、皮膚敏感..." value={info.notes} onChange={e=>setInfo({...info,notes:e.target.value})} /></div>
                           </div>
                       </div>
                   )}
@@ -459,7 +478,7 @@
                       <button onClick={()=>{
                           if(step===2 && guests.some(g=>g.services.length===0)) return alert('每位客人都需選擇至少一項服務');
                           if(step===3 && guests.some(g=>!g.time || (g.time==='微調時段申請' && !g.customTime))) return alert('請為每位客人選擇時間');
-                          if(step===4 && (!info.name || !info.phone)) return alert('請填寫資料');
+                          if(step===4 && guests.some(g=>!g.name || !g.phone)) return alert('請填寫所有顧客的資料');
                           if(step===5 && !document.getElementById('agree').checked) return alert('請勾選同意');
                           if(step===5) handleSubmit(); else setStep(s=>s+1);
                       }} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-[#8d6e63]/30 active:scale-[0.98] transition-transform">
@@ -519,9 +538,9 @@
                                 <span className="font-bold text-[#8d6e63]">{r.date} {r.time}</span>
                                 <span className={`text-xs px-2 py-1 rounded ${r.status==='confirmed'?'bg-green-100 text-green-700':r.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{r.status==='confirmed'?'✅ 成功':r.status==='cancelled'?'❌ 取消':'⏳ 待確認'}</span>
                             </div>
-                            <div className="text-sm text-gray-600 mb-2">{r.serviceName}</div>
+                            <div className="text-sm text-gray-600 mb-2">{r.serviceName} {r.guestIndex && `(第 ${r.guestIndex} 位)`}</div>
                             <div className="text-sm font-bold text-[#5d4037] mb-2">
-                                訂金：${BANK_INFO.amountPerPerson * (r.isTwoPeople ? 2 : 1)}
+                                訂金：${BANK_INFO.amountPerPerson}
                             </div>
                             
                             <div className="border-t pt-2 flex justify-between items-center mt-2">
@@ -637,6 +656,7 @@
 
         const submitSvc = async () => {
             if(!newSvc.name || !newSvc.price) return;
+            if(Number(newSvc.price) < 0) return alert('主服務金額不能為負數');
             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({ name: newSvc.name, price: Number(newSvc.price), duration: Number(newSvc.duration) });
             setNewSvc({name:'', price:'', duration:'90'});
         };
@@ -681,9 +701,9 @@
                                         <div className={`px-2 py-1 rounded text-xs ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{b.status==='confirmed'?'已確認':b.status==='cancelled'?'已取消':'待確認'}</div>
                                     </div>
                                     <div className="space-y-1 text-gray-600">
-                                        <div>{b.locationName}・{b.serviceName}</div>
+                                        <div>{b.locationName}・{b.serviceName} {b.guestIndex && `(第${b.guestIndex}位)`}</div>
                                         <div>{b.customerName} ({b.customerPhone})</div>
-                                        {b.groupId && <div className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded inline-block">同行訂單</div>}
+                                        <div className="text-[#8d6e63] font-bold">總額：${b.totalPrice}</div>
                                         {b.paymentStatus === 'reported' && <div className="text-blue-600 font-bold bg-blue-50 p-2 rounded">💰 顧客已匯款：後五碼 {b.paymentInfo?.last5}</div>}
                                         {b.paymentStatus === 'verified' && <div className="text-green-600 font-bold">💰 訂金已確認</div>}
                                     </div>
@@ -771,7 +791,7 @@
 
                     {tab === 'svc' && (
                         <div className="space-y-6">
-                            <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增服務</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newSvc.name} onChange={e=>setNewSvc({...newSvc, name:e.target.value})} /><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (可負數)" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})} /></div><button onClick={submitSvc} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{services.map(s=><div key={s.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{s.name} (${s.price}) {s.duration}分</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增服務</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newSvc.name} onChange={e=>setNewSvc({...newSvc, name:e.target.value})} /><div className="flex gap-2"><input type="number" min="0" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (限正數)" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})} /></div><button onClick={submitSvc} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{services.map(s=><div key={s.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{s.name} (${s.price}) {s.duration}分</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增加購</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newAddon.name} onChange={e=>setNewAddon({...newAddon, name:e.target.value})} /><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (可負數)" value={newAddon.price} onChange={e=>setNewAddon({...newAddon, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newAddon.duration} onChange={e=>setNewAddon({...newAddon, duration:e.target.value})} /></div><button onClick={submitAddon} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{addons.map(a=><div key={a.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{a.name} ({a.price > 0 ? '+' : ''}${a.price})</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').doc(a.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
                         </div>
                     )}
