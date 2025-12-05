@@ -22,7 +22,7 @@
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     
-    .fade-in { animation: fadeIn 0.4s ease-out; }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
     .date-cell.selected { background-color: #8d6e63; color: white; font-weight: bold; }
@@ -82,6 +82,11 @@
     
     const BANK_INFO = { code: '822 (中國信託)', account: '1234-5678-9012', name: 'AM Studio', amountPerPerson: 1000 };
 
+    // --- Categories Definition ---
+    const MAIN_CATS = ["霧眉", "霧唇", "(烏唇)淡色霧唇"];
+    const SUB_CATS = ["首次", "補色"];
+    const DETAILS = ["第一次補色", "第二次補色"];
+
     // --- Init ---
     let db, auth;
     try {
@@ -99,7 +104,6 @@
         calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
         clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
         user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
-        users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
         chevronRight: <path d="m9 18 6-6-6-6"/>,
         chevronLeft: <path d="m15 18-6-6 6-6"/>,
         check: <polyline points="20 6 9 17 4 12"/>,
@@ -109,7 +113,8 @@
         msg: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
         search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
         edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
-        zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>
+        zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
+        back: <path d="M19 12H5m7 7l-7-7 7-7"/>
     };
 
     const LOCATIONS = [
@@ -117,7 +122,6 @@
       { id: 'kaohsiung', name: '高雄工作室' }
     ];
     const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
-    
     const DEFAULT_TEMPLATES = [
         { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
         { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
@@ -125,17 +129,70 @@
         { title: '預約取消', text: '您好，您的預約已取消。若有需要請再次預約，謝謝。' }
     ];
 
+    // --- Service Selector Component ---
+    const ServiceSelector = ({ services, onSelect }) => {
+        const [stage, setStage] = useState('main'); // main, sub, detail
+        const [mainCat, setMainCat] = useState(null);
+        const [subCat, setSubCat] = useState(null);
+
+        const handleMain = (c) => { setMainCat(c); setStage('sub'); };
+        const handleSub = (t) => { 
+            setSubCat(t); 
+            if(t === '補色') setStage('detail');
+            else {
+                // 首次 - 直接找服務
+                const target = services.find(s => s.category === mainCat && s.type === t);
+                if(target) onSelect(target); else alert('查無此服務資料，請聯繫管理員');
+            }
+        };
+        const handleDetail = (d) => {
+            const target = services.find(s => s.category === mainCat && s.type === subCat && s.detail === d);
+            if(target) onSelect(target); else alert('查無此服務資料，請聯繫管理員');
+        };
+
+        const BackBtn = () => (
+            <button onClick={()=>setStage(stage==='detail'?'sub':'main')} className="mb-2 text-sm text-[#8d6e63] flex items-center gap-1">
+                <Icon path={Icons.chevronLeft} size={16}/> 上一步
+            </button>
+        );
+
+        if(stage === 'main') return (
+            <div className="grid gap-2 animate-fade-in">
+                {MAIN_CATS.map(c => <button key={c} onClick={()=>handleMain(c)} className="p-4 border rounded-xl text-left font-bold hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{c}</button>)}
+            </div>
+        );
+        if(stage === 'sub') return (
+            <div className="animate-fade-in">
+                <BackBtn/>
+                <h3 className="font-bold mb-2">{mainCat} - 選擇類型</h3>
+                <div className="grid gap-2">
+                    {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{t}</button>)}
+                </div>
+            </div>
+        );
+        if(stage === 'detail') return (
+            <div className="animate-fade-in">
+                <BackBtn/>
+                <h3 className="font-bold mb-2">{mainCat} - {subCat}</h3>
+                <div className="grid gap-2">
+                    {DETAILS.map(d => <button key={d} onClick={()=>handleDetail(d)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{d}</button>)}
+                </div>
+            </div>
+        );
+    };
+
+    // --- Main App ---
     function App() {
       const [user, setUser] = useState(null);
       const [page, setPage] = useState('home'); 
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
       
-      // guests: { id, services, addons, time, customTime, name, phone }
+      // guests: { id, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }
       const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
       
       const [date, setDate] = useState(new Date());
-      const [info, setInfo] = useState({notes:''}); // Global notes only
+      const [info, setInfo] = useState({notes:''});
       const [lastOrders, setLastOrders] = useState([]);
 
       const [services, setServices] = useState([]);
@@ -144,10 +201,8 @@
       const [booked, setBooked] = useState([]);
 
       useEffect(() => {
-        // 檢查網址是否有 ?p=check
         const params = new URLSearchParams(window.location.search);
         if (params.get('p') === 'check') setPage('check-status');
-
         auth.signInAnonymously().catch(e => console.warn(e));
         if (window.liff) window.liff.init({ liffId: LIFF_ID });
         return auth.onAuthStateChanged(setUser);
@@ -156,7 +211,7 @@
       useEffect(() => {
         if (!user) return;
         const pub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
-        pub.collection('services').orderBy('name').onSnapshot(s => setServices(s.docs.map(d => ({id:d.id, ...d.data()}))));
+        pub.collection('services').onSnapshot(s => setServices(s.docs.map(d => ({id:d.id, ...d.data()}))));
         pub.collection('addons').onSnapshot(s => setAddons(s.docs.map(d => ({id:d.id, ...d.data()}))));
         pub.collection('settings').onSnapshot(s => { 
             const obj = {}; s.forEach(d => obj[d.id] = d.data()); setSettings(obj); 
@@ -186,31 +241,29 @@
           return conf?.timeSlots?.length ? conf.timeSlots : DEFAULT_SLOTS;
       };
 
-      // --- Guest Actions ---
-      const addGuest = () => {
-          setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
+      // Actions
+      const addGuest = () => setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '', name: '', phone: '' }]);
+      const removeGuest = (idx) => { const g = [...guests]; g.splice(idx, 1); setGuests(g); };
+      const updateGuest = (idx, field, val) => { const g = [...guests]; g[idx][field] = val; setGuests(g); };
+      
+      const addServiceToGuest = (idx, s) => {
+          const g = [...guests];
+          // 避免重複添加
+          if(!g[idx].services.find(item=>item.id===s.id)) {
+              g[idx].services.push(s);
+              setGuests(g);
+          }
       };
-      const removeGuest = (idx) => {
-          const newG = [...guests];
-          newG.splice(idx, 1);
-          setGuests(newG);
-      };
-      const updateGuest = (idx, field, val) => {
-          const newG = [...guests];
-          newG[idx][field] = val;
-          setGuests(newG);
-      };
-      const toggleGuestSvc = (idx, svc) => {
-          const g = guests[idx];
-          const has = g.services.find(s => s.id === svc.id);
-          const newSvcs = has ? g.services.filter(s => s.id !== svc.id) : [...g.services, svc];
-          updateGuest(idx, 'services', newSvcs);
+      const removeServiceFromGuest = (idx, sId) => {
+          const g = [...guests];
+          g[idx].services = g[idx].services.filter(s => s.id !== sId);
+          setGuests(g);
       };
       const toggleGuestAddon = (idx, ad) => {
-          const g = guests[idx];
-          const has = g.addons.find(a => a.id === ad.id);
-          const newAdds = has ? g.addons.filter(a => a.id !== ad.id) : [...g.addons, ad];
-          updateGuest(idx, 'addons', newAdds);
+          const g = [...guests];
+          const has = g[idx].addons.find(a=>a.id===ad.id);
+          g[idx].addons = has ? g[idx].addons.filter(a=>a.id!==ad.id) : [...g[idx].addons, ad];
+          setGuests(g);
       };
 
       const calculateTotal = () => {
@@ -219,6 +272,10 @@
               g.services.forEach(s => total += s.price);
               g.addons.forEach(a => total += a.price);
           });
+          // 兩人同行優惠: 若總人數 >= 2，總價扣除 (人數 * 200)
+          if (guests.length >= 2) {
+              total -= (guests.length * 200);
+          }
           return total;
       };
 
@@ -228,6 +285,7 @@
           const batch = db.batch();
           const dStr = date.toISOString().split('T')[0];
           const groupId = Date.now().toString(); 
+          const totalP = calculateTotal();
           const newOrders = [];
 
           try {
@@ -243,8 +301,8 @@
                       date: dStr, time: tVal,
                       customerName: g.name, customerPhone: g.phone,
                       notes: info.notes,
-                      groupId, guestIndex: idx + 1, // 標記第幾位
-                      totalPrice: calculateTotal(), 
+                      groupId, guestIndex: idx + 1,
+                      totalPrice: totalP, // 存總價
                       status: 'pending', paymentStatus: 'unpaid', msgSent: false,
                       createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
                   };
@@ -255,16 +313,14 @@
               await batch.commit();
               setLastOrders(newOrders);
               
-              // LIFF Msg
-              const totalStr = `$${calculateTotal()}`;
+              const deposit = guests.length * BANK_INFO.amountPerPerson;
               const reportLink = `https://liff.line.me/${LIFF_ID}?p=check`;
-              const msg = `【預約申請通知】\n📍 ${loc.name}\n📅 ${dStr}\n👤 預約人數：${guests.length}位\n💰 總金額：${totalStr}\n⚠️ 請完成訂金支付(每人$${BANK_INFO.amountPerPerson})。\n\n🔗 點此回報匯款：\n${reportLink}`;
+              const msg = `【預約申請通知】\n📍 ${loc.name}\n📅 ${dStr}\n👤 人數：${guests.length}位\n💰 總金額：$${totalP}\n⚠️ 訂金：$${deposit} (每人$${BANK_INFO.amountPerPerson})\n\n🔗 回報匯款：\n${reportLink}`;
               
               if (window.liff?.isInClient()) {
                   try { await window.liff.sendMessages([{ type: 'text', text: msg }]); } catch (err) {}
               } else {
-                  // 若非 LIFF，跳出複製提示
-                  alert("預約已送出！\n請複製以下連結進行匯款回報：\n" + reportLink);
+                  alert("預約已送出！\n請複製連結回報匯款：\n" + reportLink);
               }
               setStep(6);
           } catch (e) { alert('Error: ' + e.message); }
@@ -279,6 +335,7 @@
       if (page === 'admin') return <AdminPanel user={user} settings={settings} onBack={()=>setPage('home')} services={services} addons={addons} />;
       if (page === 'check-status') return <StatusCheck user={user} onBack={()=>setPage('home')} />;
 
+      // Home
       if (page === 'home') {
           return (
               <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
@@ -301,6 +358,7 @@
 
       const depositTotal = guests.length * BANK_INFO.amountPerPerson;
 
+      // Booking Flow
       return (
           <div className="min-h-screen bg-white md:bg-[#f4f1ea] flex flex-col">
               <div className="bg-white p-4 sticky top-0 z-10 border-b flex items-center justify-between shadow-sm">
@@ -319,24 +377,31 @@
                                       {i > 0 && <button onClick={()=>removeGuest(i)} className="text-xs text-red-400 border border-red-200 px-2 py-1 rounded"><Icon path={Icons.trash} size={14}/></button>}
                                   </div>
                                   
-                                  <div className="grid gap-3 mb-3">{services.map(s => {
-                                      const isSel = g.services.find(gs => gs.id === s.id);
-                                      return (
-                                          <button key={s.id} onClick={()=>toggleGuestSvc(i, s)} className={`option-card p-3 rounded-xl flex items-center justify-between text-left ${isSel ? 'active' : 'bg-white'}`}>
-                                              <div><div className="font-bold">{s.name}</div><div className="text-xs opacity-70">${s.price}</div></div>
-                                              {isSel && <Icon path={Icons.check} className="text-[#8d6e63]"/>}
-                                          </button>
-                                      );
-                                  })}</div>
+                                  {/* 已選服務列表 */}
+                                  {g.services.length > 0 ? (
+                                      <div className="space-y-2 mb-4">
+                                          {g.services.map(s => (
+                                              <div key={s.id} className="flex justify-between items-center p-3 bg-[#efebe9] rounded-lg border border-[#d7ccc8]">
+                                                  <div><div className="font-bold text-[#4e342e]">{s.name}</div><div className="text-xs opacity-70">${s.price}</div></div>
+                                                  <button onClick={()=>removeServiceFromGuest(i, s.id)} className="text-[#8d6e63]"><Icon path={Icons.trash} size={16}/></button>
+                                              </div>
+                                          ))}
+                                          <button onClick={()=>addServiceToGuest(i, {id:'dummy'})} className="text-xs text-[#8d6e63] underline mt-1">再加一項服務?</button>
+                                      </div>
+                                  ) : (
+                                      <div className="mb-4">
+                                          <ServiceSelector services={services} onSelect={(s)=>addServiceToGuest(i, s)} />
+                                      </div>
+                                  )}
 
+                                  {/* 加購區 */}
                                   {addons.length > 0 && (
-                                      <div>
+                                      <div className="mt-4 pt-4 border-t border-dashed">
                                           <p className="text-xs text-gray-400 mb-2">加購項目</p>
                                           <div className="grid grid-cols-2 gap-2">{addons.map(ad => {
                                               const checked = g.addons.some(a=>a.id===ad.id);
                                               return (
-                                                  <button key={ad.id} onClick={()=>toggleGuestAddon(i, ad)}
-                                                      className={`option-card p-2 rounded-lg text-xs text-center ${checked ? 'active' : 'bg-white'}`}>
+                                                  <button key={ad.id} onClick={()=>toggleGuestAddon(i, ad)} className={`option-card p-2 rounded-lg text-xs text-center ${checked ? 'active' : 'bg-white'}`}>
                                                       <div className="font-bold">{ad.name}</div>
                                                       <div className="opacity-70">{ad.price>0?'+':''}{ad.price}</div>
                                                   </button>
@@ -348,14 +413,22 @@
                           ))}
                           
                           <button onClick={addGuest} className="w-full py-3 border-2 border-dashed border-[#8d6e63] text-[#8d6e63] rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9]">
-                              <Icon path={Icons.plus}/> 新增一位同伴
+                              <Icon path={Icons.plus}/> 新增一位同伴 (兩人同行)
                           </button>
+
+                          <div className="bg-[#8d6e63] text-white p-4 rounded-xl flex justify-between items-center shadow-lg sticky bottom-4">
+                              <div className="text-sm">
+                                  總計人數：{guests.length} 位
+                                  {guests.length >= 2 && <span className="block text-xs opacity-80">(已折抵兩人同行優惠)</span>}
+                              </div>
+                              <div className="font-bold text-lg">${calculateTotal()}</div>
+                          </div>
                       </div>
                   )}
 
+                  {/* Steps 3-6 Logic is similar to V22 but reused guests array structure */}
                   {step === 3 && (
                       <div className="space-y-6 fade-in">
-                          {/* 共用日期 */}
                           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                               <div className="flex justify-between items-center mb-4">
                                   <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1, 1))} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><Icon path={Icons.chevronLeft}/></button>
@@ -378,7 +451,7 @@
                           
                           {isDateOpen(date) ? (
                               <div className="space-y-6">
-                                  <div className="text-red-500 text-xs text-center bg-red-50 p-2 rounded">⚠️ 本店為一人服務，多人同行請選擇連續時段</div>
+                                  <div className="text-red-500 text-xs text-center bg-red-50 p-2 rounded">⚠️ 多人同行建議選擇連續時段</div>
                                   {guests.map((g, idx) => {
                                       const myTime = g.time;
                                       const taken = booked.concat(guests.filter((_, i)=>i!==idx).map(og=>og.time).filter(t=>t));
@@ -408,38 +481,19 @@
 
                   {step === 4 && (
                       <div className="space-y-6 fade-in">
-                          <div className="bg-[#fff8f6] border border-[#f5ebe9] p-5 rounded-xl space-y-3 shadow-sm">
-                              <div className="flex justify-between text-sm"><span className="text-gray-500">地點</span><span className="font-bold">{loc.name}</span></div>
-                              <div className="flex justify-between text-sm"><span className="text-gray-500">日期</span><span className="font-bold">{date.toLocaleDateString()}</span></div>
-                              <div className="border-t pt-2 space-y-2">
-                                  {guests.map((g,i) => (
-                                      <div key={g.id} className="text-xs text-gray-600 flex justify-between">
-                                          <span>第{i+1}位：{g.services.map(s=>s.name).join('+') || '無'} ({g.time === '微調時段申請' ? `微調 ${g.customTime}` : g.time})</span>
-                                      </div>
-                                  ))}
-                              </div>
-                              <div className="flex justify-between text-sm border-t pt-2 mt-2"><span className="text-gray-500">預估總額</span><span className="font-bold text-[#8d6e63]">${calculateTotal()}</span></div>
-                          </div>
                           <div className="space-y-4">
                               {guests.map((g, i) => (
-                                  <div key={g.id} className="bg-white p-4 rounded-lg border">
+                                  <div key={g.id} className="bg-white p-4 rounded-lg border shadow-sm">
                                       <h3 className="text-sm font-bold text-[#5d4037] mb-3">第 {i+1} 位顧客資料</h3>
                                       <div className="space-y-3">
-                                          <div>
-                                              <label className="block text-xs font-bold text-gray-500 mb-1">姓名</label>
-                                              <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" 
-                                                  placeholder="請輸入姓名" value={g.name} onChange={e=>updateGuest(i, 'name', e.target.value)} />
-                                          </div>
-                                          <div>
-                                              <label className="block text-xs font-bold text-gray-500 mb-1">電話</label>
-                                              <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" 
-                                                  type="tel" placeholder="09xx-xxx-xxx" value={g.phone} onChange={e=>updateGuest(i, 'phone', e.target.value)} />
-                                          </div>
+                                          <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" placeholder="姓名" value={g.name} onChange={e=>updateGuest(i, 'name', e.target.value)} />
+                                          <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" type="tel" placeholder="電話" value={g.phone} onChange={e=>updateGuest(i, 'phone', e.target.value)} />
                                       </div>
                                   </div>
                               ))}
                               <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">其他備註</label><textarea className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63] h-24 resize-none" placeholder="需卸甲、皮膚敏感..." value={info.notes} onChange={e=>setInfo({...info,notes:e.target.value})} /></div>
                           </div>
+                          <div className="flex justify-between text-sm border-t pt-2"><span className="text-gray-500">總金額</span><span className="font-bold text-[#8d6e63]">${calculateTotal()}</span></div>
                       </div>
                   )}
 
@@ -452,9 +506,8 @@
                                   <p>銀行：<span className="font-bold">{BANK_INFO.code}</span></p>
                                   <p>帳號：<span className="font-bold text-lg">{BANK_INFO.account}</span></p>
                                   <p>戶名：{BANK_INFO.name}</p>
-                                  <p className="mt-2 text-red-600 font-bold">總訂金：${depositTotal} (${BANK_INFO.amountPerPerson}/人)</p>
+                                  <p className="mt-2 text-red-600 font-bold">總訂金：${depositTotal}</p>
                               </div>
-                              <p className="text-xs text-gray-500">※ 請於預約送出後 24 小時內完成匯款，並使用首頁的「查詢/回報」功能上傳帳號後五碼。</p>
                           </div>
                           <div className="flex items-center gap-2">
                               <input type="checkbox" id="agree" className="w-5 h-5 accent-[#8d6e63]"/>
@@ -467,7 +520,7 @@
                       <div className="text-center pt-10 fade-in">
                           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600"><Icon path={Icons.check} size={40}/></div>
                           <h2 className="text-2xl font-bold mb-2 text-[#4e342e]">預約送出成功！</h2>
-                          <p className="text-gray-500 text-sm mb-8">請記得匯款並回報後五碼。</p>
+                          <p className="text-gray-500 text-sm mb-8">請記得匯款並回報。</p>
                           <button onClick={reset} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow-lg shadow-[#8d6e63]/30">返回首頁</button>
                       </div>
                   )}
@@ -476,9 +529,9 @@
               {step < 6 && (
                   <div className="p-4 bg-white border-t safe-bottom">
                       <button onClick={()=>{
-                          if(step===2 && guests.some(g=>g.services.length===0)) return alert('每位客人都需選擇至少一項服務');
+                          if(step===2 && guests.some(g=>g.services.length===0)) return alert('請為每位客人選擇服務');
                           if(step===3 && guests.some(g=>!g.time || (g.time==='微調時段申請' && !g.customTime))) return alert('請為每位客人選擇時間');
-                          if(step===4 && guests.some(g=>!g.name || !g.phone)) return alert('請填寫所有顧客的資料');
+                          if(step===4 && guests.some(g=>!g.name || !g.phone)) return alert('請填寫所有資料');
                           if(step===5 && !document.getElementById('agree').checked) return alert('請勾選同意');
                           if(step===5) handleSubmit(); else setStep(s=>s+1);
                       }} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-[#8d6e63]/30 active:scale-[0.98] transition-transform">
@@ -489,316 +542,104 @@
           </div>
       );
     }
-
-    const StatusCheck = ({ user, onBack }) => {
-        const [phone, setPhone] = useState('');
-        const [results, setResults] = useState([]);
-        const [loading, setLoading] = useState(false);
-        const [reportId, setReportId] = useState(null);
-        const [last5, setLast5] = useState('');
-
-        const search = async () => {
-            if(!phone) return alert("請輸入電話號碼");
-            setLoading(true);
-            try {
-                const snap = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
-                    .where('customerPhone', '==', phone).get();
-                if (snap.empty) {
-                    alert("查無此電話的預約資料"); setResults([]);
-                } else {
-                    const data = snap.docs.map(d=>({id:d.id, ...d.data()}));
-                    data.sort((a,b) => new Date(b.date) - new Date(a.date));
-                    setResults(data);
-                }
-            } catch(e) { alert("查詢發生錯誤: " + e.message); }
-            setLoading(false);
-        };
-
-        const submitPayment = async () => {
-            if(!last5) return alert('請輸入後五碼');
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(reportId).update({
-                paymentStatus: 'reported', paymentInfo: { last5, at: new Date().toISOString() }
-            });
-            alert('回報成功！等待店家確認。'); setReportId(null); search();
-        };
-
-        return (
-            <div className="min-h-screen bg-[#f4f1ea] p-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
-                    <h2 className="font-bold text-lg mb-4 text-[#4e342e]">預約查詢 / 匯款回報</h2>
-                    <div className="flex gap-2">
-                        <input className="flex-1 p-2 border rounded-lg" placeholder="請輸入預約電話" value={phone} onChange={e=>setPhone(e.target.value)} />
-                        <button onClick={search} className="bg-[#8d6e63] text-white px-4 rounded-lg">{loading?'...':'查詢'}</button>
-                    </div>
-                </div>
-                <div className="space-y-3">
-                    {results.map(r => (
-                        <div key={r.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex justify-between mb-2">
-                                <span className="font-bold text-[#8d6e63]">{r.date} {r.time}</span>
-                                <span className={`text-xs px-2 py-1 rounded ${r.status==='confirmed'?'bg-green-100 text-green-700':r.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{r.status==='confirmed'?'✅ 成功':r.status==='cancelled'?'❌ 取消':'⏳ 待確認'}</span>
-                            </div>
-                            <div className="text-sm text-gray-600 mb-2">{r.serviceName} {r.guestIndex && `(第 ${r.guestIndex} 位)`}</div>
-                            <div className="text-sm font-bold text-[#5d4037] mb-2">
-                                訂金：${BANK_INFO.amountPerPerson}
-                            </div>
-                            
-                            <div className="border-t pt-2 flex justify-between items-center mt-2">
-                                <span className="text-xs text-gray-500">狀態：
-                                    {r.paymentStatus==='verified' ? <span className="text-green-600 font-bold"> 已入帳</span> : 
-                                     r.paymentStatus==='reported' ? <span className="text-blue-600 font-bold"> 審核中</span> : 
-                                     <span className="text-red-500"> 未支付</span>}
-                                </span>
-                                {r.paymentStatus === 'unpaid' && r.status !== 'cancelled' && (
-                                    <button onClick={()=>setReportId(r.id)} className="text-xs bg-[#8d6e63] text-white px-3 py-1 rounded">回報</button>
-                                )}
-                            </div>
-                            {reportId === r.id && (
-                                <div className="mt-3 bg-gray-50 p-3 rounded flex gap-2">
-                                    <input className="flex-1 p-1 border rounded text-sm" placeholder="帳號後五碼" value={last5} onChange={e=>setLast5(e.target.value)} />
-                                    <button onClick={submitPayment} className="bg-blue-600 text-white px-3 text-xs rounded">送出</button>
-                                    <button onClick={()=>setReportId(null)} className="text-gray-400 text-xs">取消</button>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-                <button onClick={onBack} className="mt-6 w-full py-3 text-gray-400 text-sm">返回首頁</button>
-            </div>
-        )
-    }
-
+    
+    // --- Admin Components ---
     const AdminLogin = ({ onBack, onLogin }) => {
         const [pin, setPin] = useState('');
         return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
     }
 
     const AdminPanel = ({ user, settings, onBack, services, addons }) => {
-        const [tab, setTab] = useState('book');
-        const [books, setBooks] = useState([]);
-        const [editDates, setEditDates] = useState({kaohsiung:'', tainan:''});
-        const [editSlots, setEditSlots] = useState({kaohsiung:'', tainan:''});
-        const [selectedDay, setSelectedDay] = useState(null);
-        const [daySlots, setDaySlots] = useState('');
-        const [msgModal, setMsgModal] = useState(null); 
-        const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
-        const [editMode, setEditMode] = useState(false); 
+        const [tab, setTab] = useState('svc');
+        // Add Service Form with Categories
+        const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], detail: '', price: '', duration: '90' });
 
-        const [newSvc, setNewSvc] = useState({name:'', price:'', duration:'90'});
-        const [newAddon, setNewAddon] = useState({name:'', price:'', duration:'0'});
-
-        useEffect(() => {
-            if(settings.kaohsiung) {
-                setEditDates(p => ({...p, kaohsiung: settings.kaohsiung.allowedDates?.join(',') || ''}));
-                setEditSlots(p => ({...p, kaohsiung: settings.kaohsiung.timeSlots?.join(',') || ''}));
-            }
-            if(settings.tainan) {
-                setEditDates(p => ({...p, tainan: settings.tainan.allowedDates?.join(',') || ''}));
-                setEditSlots(p => ({...p, tainan: settings.tainan.timeSlots?.join(',') || ''}));
-            }
-            if(settings.templates) setTemplates(settings.templates);
-        }, [settings]);
-
-        useEffect(() => {
-            db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
-              .orderBy('date', 'desc').limit(50).onSnapshot(s => setBooks(s.docs.map(d=>({id:d.id, ...d.data()}))));
-        }, []);
-
-        const handleDateClick = (locId, dStr) => {
-            if (editMode) {
-                setSelectedDay({ locId, date: dStr });
-                const special = settings[locId]?.specialRules?.[dStr];
-                setDaySlots(special ? special.join(',') : '');
-            } else {
-                const current = editDates[locId].split(',').filter(x=>x);
-                const set = new Set(current);
-                if(set.has(dStr)) set.delete(dStr); else set.add(dStr);
-                setEditDates({...editDates, [locId]: Array.from(set).sort().join(',')});
-            }
+        const submitSvcV23 = async () => {
+            if(!newSvc.price) return;
+            let name = `${newSvc.cat} - ${newSvc.type}`;
+            if(newSvc.type === '補色' && newSvc.detail) name += ` (${newSvc.detail})`;
+            
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({
+                name: name,
+                category: newSvc.cat,
+                type: newSvc.type,
+                detail: newSvc.detail,
+                price: Number(newSvc.price),
+                duration: Number(newSvc.duration)
+            });
+            alert('服務已新增');
         };
 
-        const saveSettings = async (locId) => {
-            const data = {
-                allowedDates: editDates[locId].split(',').filter(x=>x),
-                timeSlots: editSlots[locId].split(',').filter(x=>x),
-                specialRules: settings[locId]?.specialRules || {}
-            };
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(locId).set(data);
-            alert('設定已儲存');
-        };
-
-        const saveDayRule = async () => {
-            if(!selectedDay) return;
-            const { locId, date } = selectedDay;
-            const currentRules = settings[locId]?.specialRules || {};
-            if (!daySlots.trim()) delete currentRules[date]; else currentRules[date] = daySlots.split(',').map(x=>x.trim()).filter(x=>x);
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(locId).update({ specialRules: currentRules });
-            alert(`${date} 的特殊時段已儲存！`); setSelectedDay(null);
-        };
-
-        const copyDefaultSlots = (locId) => {
-            setDaySlots(editSlots[locId]);
-        }
-
-        const saveTemplates = async () => {
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('templates').set({ templates });
-            alert('訊息範本已儲存');
-        };
-
-        const sendTemplateMsg = async (tpl) => {
-            if(!msgModal) return;
-            const b = msgModal;
-            let text = tpl.text.replace('{{date}}', b.date).replace('{{time}}', b.time).replace('{{location}}', b.locationName).replace('{{service}}', b.serviceName);
-            if (window.liff?.isInClient()) { await window.liff.sendMessages([{type:'text', text}]); alert('訊息已傳送'); } 
-            else { navigator.clipboard.writeText(text); alert('已複製訊息，請貼上給顧客'); }
-            setMsgModal(null);
-        };
-
-        const submitSvc = async () => {
-            if(!newSvc.name || !newSvc.price) return;
-            if(Number(newSvc.price) < 0) return alert('主服務金額不能為負數');
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({ name: newSvc.name, price: Number(newSvc.price), duration: Number(newSvc.duration) });
-            setNewSvc({name:'', price:'', duration:'90'});
-        };
-        
-        const submitAddon = async () => {
-            if(!newAddon.name || !newAddon.price) return;
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').add({ name: newAddon.name, price: Number(newAddon.price), duration: Number(newAddon.duration) });
-            setNewAddon({name:'', price:'', duration:'0'});
-        };
-
-        const renderCalendar = (locId) => {
-            const today = new Date(); const year = today.getFullYear(); const month = today.getMonth();
-            const days = new Date(year, month+1, 0).getDate(); const start = new Date(year, month, 1).getDay();
-            const selected = new Set(editDates[locId].split(',')); const specialMap = settings[locId]?.specialRules || {};
-            return (
-                <div className="bg-white p-4 rounded-xl border shadow-sm"><div className="text-center mb-2 font-bold">{year}年 {month+1}月</div><div className="grid grid-cols-7 gap-2 text-center text-xs">{Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}{Array.from({length:days}).map((_,i)=>{const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;const hasRule = specialMap[dStr];return (<div key={dStr} onClick={()=>handleDateClick(locId, dStr)} className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer border ${selected.has(dStr)?'bg-[#8d6e63] text-white': hasRule ? 'border-orange-400 bg-orange-50 text-orange-700 date-cell has-rule' : 'border-gray-100 hover:bg-gray-50'}`}>{i+1}</div>)})}</div></div>
-            )
+        const initV23Data = async () => {
+            if(!confirm('這將會新增範例資料，確定嗎？')) return;
+            const batch = db.batch();
+            const col = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
+            
+            const samples = [
+                { category: '霧眉', type: '首次', detail: '', price: 6000, duration: 120 },
+                { category: '霧眉', type: '補色', detail: '第一次補色', price: 3000, duration: 90 },
+                { category: '霧唇', type: '首次', detail: '', price: 8000, duration: 150 },
+                { category: '(烏唇)淡色霧唇', type: '首次', detail: '', price: 9000, duration: 150 },
+            ];
+            samples.forEach(s => {
+                const ref = col.doc();
+                batch.set(ref, { ...s, name: `${s.category} - ${s.type} ${s.detail}` });
+            });
+            await batch.commit();
+            alert('範例資料已建立');
         };
 
         return (
-            <div className="min-h-screen bg-gray-50 pb-20">
-                <div className="bg-white p-4 sticky top-0 z-20 border-b flex justify-between items-center shadow-sm">
-                    <h2 className="font-bold text-lg">後台管理</h2>
-                    <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">登出</button>
+            <div className="min-h-screen bg-gray-50 p-4">
+                <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4">
+                    <h2 className="font-bold">後台管理 (V23)</h2>
+                    <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
                 </div>
-                
-                <div className="p-4 space-y-6">
-                    <div className="flex bg-white p-1 rounded-xl border overflow-x-auto">
-                        {['book','msg','set','svc'].map(t => (
-                            <button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 px-2 min-w-[60px] rounded-lg text-sm font-bold ${tab===t?'bg-[#8d6e63] text-white':'text-gray-500'}`}>
-                                {t==='book'?'預約':t==='msg'?'訊息':t==='set'?'營業':t==='svc'?'服務':''}
-                            </button>
-                        ))}
+
+                {tab === 'svc' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-[#4e342e]">新增服務 (層級式)</h3>
+                                <button onClick={initV23Data} className="text-xs text-blue-500 underline">⚡ 重置為 V23 預設資料</button>
+                            </div>
+                            <div className="space-y-3">
+                                <select className="w-full border p-2 rounded" value={newSvc.cat} onChange={e=>setNewSvc({...newSvc, cat:e.target.value})}>
+                                    {MAIN_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <select className="w-full border p-2 rounded" value={newSvc.type} onChange={e=>setNewSvc({...newSvc, type:e.target.value})}>
+                                    {SUB_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                                </select>
+                                {newSvc.type === '補色' && (
+                                    <select className="w-full border p-2 rounded" value={newSvc.detail} onChange={e=>setNewSvc({...newSvc, detail:e.target.value})}>
+                                        <option value="">請選擇補色次數</option>
+                                        {DETAILS.map(c=><option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                )}
+                                <div className="flex gap-2">
+                                    <input type="number" className="flex-1 border p-2 rounded" placeholder="價格" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})}/>
+                                    <input type="number" className="w-24 border p-2 rounded" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})}/>
+                                </div>
+                                <button onClick={submitSvcV23} className="w-full bg-[#8d6e63] text-white py-2 rounded">新增</button>
+                            </div>
+
+                            <div className="mt-6 border-t pt-4">
+                                <h4 className="font-bold text-sm text-gray-500 mb-2">現有服務列表</h4>
+                                <div className="space-y-2">
+                                    {services.map(s=>(
+                                        <div key={s.id} className="flex justify-between p-2 border rounded bg-gray-50 text-sm">
+                                            <span>{s.category} > {s.type} {s.detail} (${s.price})</span>
+                                            <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={14}/></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    {tab === 'book' && (
-                        <div className="space-y-4">
-                            {books.map(b => (
-                                <div key={b.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-sm">
-                                    <div className="flex justify-between mb-2">
-                                        <div className="font-bold text-lg text-[#8d6e63]">{b.date} {b.time}</div>
-                                        <div className={`px-2 py-1 rounded text-xs ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{b.status==='confirmed'?'已確認':b.status==='cancelled'?'已取消':'待確認'}</div>
-                                    </div>
-                                    <div className="space-y-1 text-gray-600">
-                                        <div>{b.locationName}・{b.serviceName} {b.guestIndex && `(第${b.guestIndex}位)`}</div>
-                                        <div>{b.customerName} ({b.customerPhone})</div>
-                                        <div className="text-[#8d6e63] font-bold">總額：${b.totalPrice}</div>
-                                        {b.paymentStatus === 'reported' && <div className="text-blue-600 font-bold bg-blue-50 p-2 rounded">💰 顧客已匯款：後五碼 {b.paymentInfo?.last5}</div>}
-                                        {b.paymentStatus === 'verified' && <div className="text-green-600 font-bold">💰 訂金已確認</div>}
-                                    </div>
-                                    <div className="flex gap-2 mt-3 pt-3 border-t">
-                                        <button onClick={()=>setMsgModal(b)} className="flex-1 bg-gray-100 py-2 rounded flex items-center justify-center gap-1"><Icon path={Icons.msg} size={16}/> 傳訊</button>
-                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({status: 'confirmed'})} className="flex-1 bg-green-50 text-green-700 border border-green-200 py-2 rounded">確認</button>
-                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({paymentStatus: 'verified'})} className="flex-1 bg-blue-50 text-blue-700 border border-blue-200 py-2 rounded">收訂</button>
-                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({status: 'cancelled'})} className="px-3 text-red-400 border border-red-200 rounded">❌</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {tab === 'msg' && (
-                        <div className="space-y-4">
-                            <h3 className="font-bold text-[#4e342e]">常用回覆設定</h3>
-                            {templates.map((tpl, i) => (
-                                <div key={i} className="bg-white p-3 rounded-lg border">
-                                    <input className="font-bold w-full mb-2 p-1 border-b" value={tpl.title} onChange={e=>{ const newT = [...templates]; newT[i].title = e.target.value; setTemplates(newT); }} />
-                                    <textarea className="w-full text-sm p-2 bg-gray-50 rounded h-24" value={tpl.text} onChange={e=>{ const newT = [...templates]; newT[i].text = e.target.value; setTemplates(newT); }} />
-                                </div>
-                            ))}
-                            <button onClick={saveTemplates} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow">儲存所有訊息設定</button>
-                        </div>
-                    )}
-
-                    {msgModal && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                            <div className="bg-white w-full max-w-sm rounded-xl p-4">
-                                <h3 className="font-bold mb-4">選擇傳送訊息</h3>
-                                <div className="space-y-2">{templates.map((t,i) => (<button key={i} onClick={()=>sendTemplateMsg(t)} className="w-full text-left p-3 border rounded hover:bg-gray-50"><div className="font-bold text-[#5d4037]">{t.title}</div><div className="text-xs text-gray-400 truncate">{t.text}</div></button>))}</div>
-                                <button onClick={()=>setMsgModal(null)} className="mt-4 w-full py-2 text-gray-400">取消</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {tab === 'set' && (
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2 mb-4 bg-yellow-50 p-2 rounded text-sm text-yellow-800">
-                                <button onClick={()=>setEditMode(!editMode)} className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors ${editMode?'bg-yellow-500 justify-end':'bg-gray-300'}`}>
-                                    <div className="w-4 h-4 bg-white rounded-full"></div>
-                                </button>
-                                <span>{editMode ? '✏️ 模式：設定單日特殊時段 (點擊日期編輯)' : '👆 模式：快速開關日期 (點擊切換)'}</span>
-                            </div>
-
-                            {['kaohsiung','tainan'].map(locId => (
-                                <div key={locId} className="border p-4 rounded-xl bg-white">
-                                    <h3 className="font-bold mb-2 capitalize">{locId} 設定</h3>
-                                    {renderCalendar(locId)}
-                                    <div className="mt-2 text-xs text-gray-400 text-center">
-                                        {editMode ? '點擊日期可設定當天專屬營業時間' : '點擊日期可快速 開放 / 關閉 預約'}
-                                    </div>
-                                    {!editMode && (
-                                        <div className="mt-4">
-                                            <label className="text-xs font-bold block mb-1">預設時段 (全域)</label>
-                                            <input className="w-full border p-2 rounded text-sm" value={editSlots[locId]} onChange={e=>setEditSlots({...editSlots, [locId]:e.target.value})} />
-                                            <button onClick={()=>saveSettings(locId)} className="mt-2 w-full bg-[#8d6e63] text-white py-2 rounded text-sm">儲存基本設定</button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                            {selectedDay && (
-                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                                    <div className="bg-white w-full max-w-sm rounded-xl p-6">
-                                        <h3 className="font-bold mb-4 text-lg border-b pb-2">{selectedDay.date} 特殊設定</h3>
-                                        <p className="text-sm text-gray-500 mb-2">在此輸入該日的特殊營業時間，留空則依預設規則或關閉。</p>
-                                        
-                                        <div className="flex gap-2 mb-2">
-                                            <button onClick={()=>copyDefaultSlots(selectedDay.locId)} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 flex items-center gap-1">
-                                                <Icon path={Icons.zap} size={12}/> 帶入預設時段
-                                            </button>
-                                        </div>
-
-                                        <input className="w-full border p-3 rounded mb-4" placeholder="例如: 10:00, 14:00" value={daySlots} onChange={e=>setDaySlots(e.target.value)} />
-                                        <div className="flex gap-2">
-                                            <button onClick={()=>setSelectedDay(null)} className="flex-1 py-2 bg-gray-100 rounded">取消</button>
-                                            <button onClick={saveDayRule} className="flex-1 py-2 bg-[#8d6e63] text-white rounded">儲存單日</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {tab === 'svc' && (
-                        <div className="space-y-6">
-                            <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增服務</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newSvc.name} onChange={e=>setNewSvc({...newSvc, name:e.target.value})} /><div className="flex gap-2"><input type="number" min="0" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (限正數)" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})} /></div><button onClick={submitSvc} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{services.map(s=><div key={s.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{s.name} (${s.price}) {s.duration}分</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
-                            <div className="bg-white p-4 rounded-xl shadow-sm border"><h3 className="font-bold mb-3 text-[#4e342e]">新增加購</h3><div className="space-y-2"><input className="w-full border p-2 rounded text-sm" placeholder="名稱" value={newAddon.name} onChange={e=>setNewAddon({...newAddon, name:e.target.value})} /><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded text-sm" placeholder="價格 (可負數)" value={newAddon.price} onChange={e=>setNewAddon({...newAddon, price:e.target.value})} /><input type="number" className="w-24 border p-2 rounded text-sm" placeholder="分鐘" value={newAddon.duration} onChange={e=>setNewAddon({...newAddon, duration:e.target.value})} /></div><button onClick={submitAddon} className="w-full bg-[#8d6e63] text-white py-2 rounded text-sm flex items-center justify-center gap-1"><Icon path={Icons.plus} size={16}/> 新增</button></div><div className="mt-4 border-t pt-4 space-y-2">{addons.map(a=><div key={a.id} className="flex justify-between text-sm p-2 border rounded bg-gray-50"><span>{a.name} ({a.price > 0 ? '+' : ''}${a.price})</span><button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('addons').doc(a.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={16}/></button></div>)}</div></div>
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
-        )
-    }
+        );
+    };
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
