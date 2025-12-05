@@ -10,12 +10,16 @@
   <style>
     body { font-family: 'Noto Serif TC', serif; background-color: #fdfbf7; color: #5d4037; }
     
-    /* 元件樣式 */
-    .option-btn { @apply w-full p-4 rounded-xl border-2 border-[#e5e7eb] bg-white text-left transition-all duration-200 shadow-sm flex justify-between items-center; }
-    .option-btn:hover { @apply border-[#d7ccc8] bg-[#faf9f8] shadow-md; }
-    .option-btn.active { @apply border-[#8d6e63] bg-[#efebe9] text-[#3e2723] font-bold ring-1 ring-[#8d6e63]; }
+    /* 優化後的按鈕樣式 (有底色、更好辨識) */
+    .service-btn { 
+      @apply w-full p-4 rounded-xl border border-[#d7ccc8] bg-white text-left text-[#5d4037] shadow-sm transition-all duration-200 flex justify-between items-center mb-3 font-bold text-lg;
+    }
+    .service-btn:hover { @apply bg-[#faf9f8] border-[#8d6e63] translate-x-1; }
+    .service-btn:active { @apply bg-[#efebe9] scale-[0.98]; }
     
-    .big-card-btn { @apply flex flex-col items-center justify-center p-6 border-2 border-[#e5e7eb] rounded-2xl bg-white hover:border-[#8d6e63] hover:bg-[#efebe9] transition-all shadow-sm aspect-square cursor-pointer; }
+    .option-card { transition: all 0.2s; border: 2px solid #e5e7eb; }
+    .option-card:hover { border-color: #d7ccc8; }
+    .option-card.active { border-color: #8d6e63; background-color: #efebe9; color: #3e2723; }
     
     .guest-block { @apply border-l-4 border-[#8d6e63] pl-4 mb-8 relative; }
     
@@ -28,14 +32,24 @@
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    .date-cell.selected { background-color: #8d6e63; color: white; font-weight: bold; }
-    .date-cell.has-rule { border-bottom: 2px solid #d97706; }
+    /* 後台月曆樣式 */
+    .date-cell { min-height: 80px; background: white; border: 1px solid #f3f4f6; padding: 4px; cursor: default; }
+    .date-cell:hover { background: #fafafa; }
     
-    /* 狀態點與標籤 */
-    .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin: 0 1px; }
-    .dot.green { background-color: #10b981; }
-    .dot.yellow { background-color: #f59e0b; }
+    /* 月曆上的預約小標籤 */
+    .cal-event { 
+      @apply text-[10px] p-1 rounded mb-1 cursor-pointer truncate shadow-sm transition-all;
+      background-color: #efebe9; color: #5d4037; border-left: 2px solid #8d6e63;
+    }
+    .cal-event:hover { @apply bg-[#8d6e63] text-white; }
     
+    /* 閃爍效果 (用於跳轉定位) */
+    @keyframes highlight {
+      0% { background-color: #fef08a; }
+      100% { background-color: white; }
+    }
+    .highlight-row { animation: highlight 2s ease-out; }
+
     .status-tab { @apply px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors border; }
     .status-tab.active { @apply bg-[#8d6e63] text-white border-[#8d6e63]; }
     .status-tab.inactive { @apply bg-white text-gray-500 border-gray-200 hover:bg-gray-50; }
@@ -59,6 +73,7 @@
     </div>
   </div>
 
+  <!-- Error Handling -->
   <div id="error-box" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; padding:20px; text-align:center;">
     <div style="max-width:500px; margin:50px auto; border:2px solid #ef4444; padding:20px; background:#fff; border-radius:8px;">
         <h2 style="color:#ef4444; font-size:24px; margin-bottom:10px;">⚠️ 發生錯誤</h2>
@@ -77,7 +92,7 @@
   </script>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, useRef } = React;
     
     // --- Config ---
     const firebaseConfig = {
@@ -199,7 +214,7 @@
                 else if(stage==='session') setStage('sub');
                 else if(stage==='sub') setStage('main');
                 else if(stage==='main') onCancel();
-            }} className="mb-4 text-base text-[#8d6e63] flex items-center gap-2 font-bold px-2 py-1 rounded hover:bg-gray-100">
+            }} className="mb-4 text-base text-[#8d6e63] flex items-center gap-2 font-bold px-4 py-2 rounded-lg hover:bg-gray-100 bg-white border border-gray-200 shadow-sm">
                 <Icon path={Icons.back} size={20}/> {stage==='main' ? '取消' : '返回上一步'}
             </button>
         );
@@ -208,13 +223,12 @@
             <div className="space-y-4 animate-fade-in">
                 <div className="flex justify-between items-center">
                     <p className="text-sm text-gray-500 font-bold">請選擇服務項目：</p>
-                    <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600">取消</button>
+                    <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 p-2">取消</button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-3">
                     {MAIN_CATS.map(c => (
-                        <button key={c} onClick={()=>handleMain(c)} className="big-card-btn">
-                            <div className="text-3xl mb-2">{c.includes('眉') ? '🤨' : '👄'}</div>
-                            <div className="font-bold text-lg text-[#5d4037]">{c}</div>
+                        <button key={c} onClick={()=>handleMain(c)} className="service-btn">
+                            {c} <Icon path={Icons.chevronRight}/>
                         </button>
                     ))}
                 </div>
@@ -224,9 +238,9 @@
         if(stage === 'sub') return (
             <div className="space-y-3 animate-fade-in">
                 <BackBtn/>
-                <h3 className="font-bold text-xl text-[#4e342e] mb-2">{mainCat}</h3>
-                <p className="text-sm text-gray-500">請選擇類型：</p>
-                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn text-lg font-bold">{t} <Icon path={Icons.chevronRight}/></button>)}
+                <h3 className="font-bold text-xl text-[#4e342e] mb-2 px-1">{mainCat}</h3>
+                <p className="text-sm text-gray-500 px-1">請選擇類型：</p>
+                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="service-btn">{t} <Icon path={Icons.chevronRight}/></button>)}
             </div>
         );
         
@@ -236,7 +250,7 @@
             return (
                 <div className="animate-fade-in">
                     <BackBtn/>
-                    <h3 className="font-bold mb-4 text-lg text-[#4e342e]">{mainCat} - {subCat}</h3>
+                    <h3 className="font-bold mb-4 text-lg text-[#4e342e] px-1">{mainCat} - {subCat}</h3>
                     {mainCat === '霧唇' && subCat === '首次' && (
                         <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors" onClick={()=>setIsDarkLip(!isDarkLip)}>
                             <label className="flex items-center gap-3 cursor-pointer pointer-events-none">
@@ -250,7 +264,7 @@
                             </label>
                         </div>
                     )}
-                    <div className="mb-6 text-center">
+                    <div className="mb-6 text-center p-4 bg-[#efebe9] rounded-xl">
                         <div className="text-sm text-gray-500">預估金額</div>
                         <div className="text-3xl font-bold text-[#8d6e63]">
                             ${isDarkLip ? basePrice + 1300 : basePrice}
@@ -264,9 +278,9 @@
         if(stage === 'session') return (
             <div className="space-y-3 animate-fade-in">
                 <BackBtn/>
-                <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - 補色</h3>
-                <p className="text-sm text-gray-500">是第幾次補色呢？</p>
-                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn text-lg">{s} <Icon path={Icons.chevronRight}/></button>)}
+                <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - 補色</h3>
+                <p className="text-sm text-gray-500 px-1">是第幾次補色呢？</p>
+                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="service-btn">{s} <Icon path={Icons.chevronRight}/></button>)}
             </div>
         );
         
@@ -279,20 +293,19 @@
             return (
                 <div className="space-y-3 animate-fade-in">
                     <BackBtn/>
-                    <h3 className="font-bold text-xl text-[#4e342e]">{mainCat} - {session}</h3>
-                    <p className="text-sm text-gray-500">距離上次施作多久了？</p>
+                    <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - {session}</h3>
+                    <p className="text-sm text-gray-500 px-1">距離上次施作多久了？</p>
                     {ranges.length > 0 ? ranges.map(r => (
-                        <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn flex justify-between items-center group">
-                            <span className="font-medium text-lg">{r.label}</span>
-                            <span className="font-bold text-[#8d6e63] text-lg group-hover:scale-110 transition-transform">${r.price}</span>
+                        <button key={r.label} onClick={()=>handleTime(r.label)} className="service-btn group">
+                            <span className="font-medium">{r.label}</span>
+                            <span className="font-bold text-[#8d6e63] bg-[#efebe9] px-3 py-1 rounded-lg group-hover:bg-white group-hover:text-[#8d6e63] transition-colors">${r.price}</span>
                         </button>
-                    )) : <div className="text-gray-400 text-center py-8 bg-gray-50 rounded-xl">尚無此時段的報價資料</div>}
+                    )) : <div className="text-gray-400 text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed">尚無此時段的報價資料</div>}
                 </div>
             );
         }
     };
 
-    // --- Status Check Component ---
     const StatusCheck = ({ user, onBack }) => {
         const [phone, setPhone] = useState('');
         const [results, setResults] = useState([]);
@@ -370,7 +383,6 @@
         return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
     }
 
-    // --- Admin Panel ---
     const AdminPanel = ({ user, settings, onBack, services, addons, discounts }) => {
         const [tab, setTab] = useState('cal'); 
         const [filterStatus, setFilterStatus] = useState('all');
@@ -382,9 +394,11 @@
         const [msgModal, setMsgModal] = useState(null); 
         const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
         const [editMode, setEditMode] = useState(false); 
-        // Admin Calendar State
         const [calDate, setCalDate] = useState(new Date());
         const [calSelected, setCalSelected] = useState(null);
+        
+        // Ref for scrolling
+        const bookingRefs = useRef({});
 
         const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], session: TOUCHUP_SESSIONS[0], timeRange: '', price: '', duration: '90' });
         const [newDiscName, setNewDiscName] = useState('');
@@ -414,7 +428,6 @@
             const days = new Date(y, m+1, 0).getDate();
             const start = new Date(y, m, 1).getDay();
             
-            // Calculate indicators
             const bookMap = {};
             books.forEach(b => {
                 if(b.status !== 'cancelled') {
@@ -448,15 +461,17 @@
                                         {info && (
                                             <div className="flex gap-0.5 mt-1">
                                                 <span className={`dot ${info.hasPending ? 'yellow' : 'green'}`}></span>
+                                                {info.count > 1 && <span className="text-[8px] text-gray-400">+{info.count-1}</span>}
                                             </div>
                                         )}
+                                        {info && info.count === 1 && <div className="text-[8px] text-gray-400 truncate w-full text-center px-1">預約</div>}
                                     </div>
                                 )
                             })}
                         </div>
                     </div>
                     
-                    {/* Daily List */}
+                    {/* Daily List - Click to Jump */}
                     {calSelected && (
                         <div className="bg-white p-4 rounded-xl shadow-sm border animate-fade-in">
                             <h3 className="font-bold mb-3 text-[#4e342e] flex items-center gap-2">
@@ -467,14 +482,21 @@
                                     <p className="text-gray-400 text-sm text-center py-4">當日無預約</p>
                                 ) : (
                                     books.filter(b => b.date === calSelected).map(b => (
-                                        <div key={b.id} className={`border p-3 rounded-lg text-sm flex justify-between items-center ${b.status==='cancelled'?'opacity-50 bg-gray-50':''}`}>
+                                        <div key={b.id} 
+                                            onClick={()=>{ setTab('book'); setTimeout(() => {
+                                                const el = document.getElementById(`book-${b.id}`);
+                                                if(el) {
+                                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    el.classList.add('highlight-row');
+                                                    setTimeout(() => el.classList.remove('highlight-row'), 2000);
+                                                }
+                                            }, 100); }}
+                                            className={`border p-3 rounded-lg text-sm flex justify-between items-center cursor-pointer hover:bg-gray-50 ${b.status==='cancelled'?'opacity-50 bg-gray-50':''}`}>
                                             <div>
                                                 <div className="font-bold text-[#5d4037]">{b.time} - {b.customerName}</div>
-                                                <div className="text-xs text-gray-500">{b.serviceName} ({b.locationName})</div>
+                                                <div className="text-xs text-gray-500">{b.serviceName}</div>
                                             </div>
-                                            <div className={`text-xs px-2 py-1 rounded ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>
-                                                {b.status==='confirmed'?'已確認':b.status==='cancelled'?'取消':'待確認'}
-                                            </div>
+                                            <Icon path={Icons.chevronRight} size={16} className="text-gray-300"/>
                                         </div>
                                     ))
                                 )}
@@ -615,15 +637,6 @@
              setNewDiscName('');
         };
 
-        const renderSettingsCalendar = (locId) => {
-             const today = new Date(); const year = today.getFullYear(); const month = today.getMonth();
-             const days = new Date(year, month+1, 0).getDate(); const start = new Date(year, month, 1).getDay();
-             const selected = new Set(editDates[locId].split(',')); const specialMap = settings[locId]?.specialRules || {};
-             return (
-                 <div className="bg-white p-4 rounded-xl border shadow-sm"><div className="text-center mb-2 font-bold">{year}年 {month+1}月</div><div className="grid grid-cols-7 gap-2 text-center text-xs">{Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}{Array.from({length:days}).map((_,i)=>{const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;const hasRule = specialMap[dStr];return (<div key={dStr} onClick={()=>handleDateClick(locId, dStr)} className={`aspect-square flex items-center justify-center rounded-lg cursor-pointer border ${selected.has(dStr)?'bg-[#8d6e63] text-white': hasRule ? 'border-orange-400 bg-orange-50 text-orange-700 date-cell has-rule' : 'border-gray-100 hover:bg-gray-50'}`}>{i+1}</div>)})}</div></div>
-             )
-        };
-
         const filteredBooks = books.filter(b => {
              if (filterStatus === 'all') return true;
              if (filterStatus === 'pending') return b.status === 'pending';
@@ -638,7 +651,7 @@
         return (
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4 z-20">
-                    <h2 className="font-bold">後台管理 (V31)</h2>
+                    <h2 className="font-bold">後台管理 (V33)</h2>
                     <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
                 </div>
                 
@@ -671,7 +684,7 @@
                          </div>
                         <div className="space-y-4">
                             {filteredBooks.map(b => (
-                                <div key={b.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-sm">
+                                <div id={`book-${b.id}`} key={b.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-sm transition-colors">
                                     <div className="flex justify-between mb-2">
                                         <div className="font-bold text-lg text-[#8d6e63]">{b.date} {b.time}</div>
                                         <div className={`px-2 py-1 rounded text-xs ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{b.status==='confirmed'?'已確認':b.status==='cancelled'?'已取消':'待確認'}</div>
@@ -857,7 +870,7 @@
         );
     };
 
-    // --- Main App (V30) ---
+    // --- Main App (V33) ---
     function App() {
       const [user, setUser] = useState(null);
       const [page, setPage] = useState('home'); 
@@ -869,7 +882,6 @@
       
       const [date, setDate] = useState(new Date());
       const [info, setInfo] = useState({notes:''});
-      const [isTwoPeople, setIsTwoPeople] = useState(false);
       const [lastOrder, setLastOrder] = useState(null);
 
       const [services, setServices] = useState([]);
@@ -935,7 +947,6 @@
              if(!g[idx].services.find(item=>item.id===s.id)) g[idx].services.push(s);
           }
           setGuests(g);
-          // Close Selector Logic handled by button
       };
       const removeServiceFromGuest = (idx, sId) => {
           const g = [...guests];
@@ -949,8 +960,7 @@
           setGuests(g);
       };
       
-      // Toggle selector visibility
-      const [showSelector, setShowSelector] = useState(null); // guest index or null
+      const [showSelector, setShowSelector] = useState(null); 
 
       const calculateTotal = () => {
           let total = 0;
@@ -966,7 +976,7 @@
               }
           });
           
-          if (isTwoPeople) {
+          if (guests.length >= 2) {
              guests.forEach(g => {
                  const isTouchUp = g.services.some(s => s.type === '補色');
                  if (!isTouchUp) total -= 200;
@@ -1087,7 +1097,7 @@
                                   {/* Add Service Button - Replaces old "Change" button */}
                                   {showSelector !== i ? (
                                       <button onClick={()=>setShowSelector(i)} className="w-full py-4 bg-white border-2 border-dashed border-[#8d6e63] text-[#8d6e63] rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9] transition-colors font-bold">
-                                          <Icon path={Icons.plus}/> {g.services.length>0 ? '再加一項服務' : '新增服務項目'}
+                                          <Icon path={Icons.plus}/> {g.services.length>0 ? '再加一項服務' : '選擇服務項目'}
                                       </button>
                                   ) : (
                                       <div className="mt-2">
@@ -1111,13 +1121,13 @@
                           ))}
                           
                           <button onClick={addGuest} className="w-full py-3 bg-[#8d6e63] text-white rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-[#795548]">
-                              <Icon path={Icons.plus}/> 新增一位同伴 (兩人同行)
+                              <Icon path={Icons.plus}/> 新增一位同伴 ({guests.length >= 1 ? '多人同行' : '兩人同行'})
                           </button>
 
                           <div className="bg-[#5d4037] text-white p-4 rounded-xl flex justify-between items-center shadow-lg sticky bottom-4 border-t-4 border-[#8d6e63]">
                               <div className="text-sm">
                                   總計人數：{guests.length} 位
-                                  {isTwoPeople && <span className="block text-xs opacity-80">(含兩人同行優惠)</span>}
+                                  {guests.length >= 2 && <span className="block text-xs opacity-80">(含兩人同行優惠)</span>}
                               </div>
                               <div className="font-bold text-xl">${calculateTotal()}</div>
                           </div>
