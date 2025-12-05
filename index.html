@@ -83,9 +83,9 @@
     const BANK_INFO = { code: '822 (中國信託)', account: '1234-5678-9012', name: 'AM Studio', amountPerPerson: 1000 };
 
     // --- Categories Definition ---
-    const MAIN_CATS = ["霧眉", "霧唇", "(烏唇)淡色霧唇"];
+    const MAIN_CATS = ["霧眉", "霧唇", "淡色+霧唇"];
     const SUB_CATS = ["首次", "補色"];
-    const DETAILS = ["第一次補色", "第二次補色"];
+    const TOUCHUP_SESSIONS = ["第一次回補", "第二次以上"];
 
     // --- Init ---
     let db, auth;
@@ -123,7 +123,6 @@
       { id: 'kaohsiung', name: '高雄工作室' }
     ];
     const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
-    
     const DEFAULT_TEMPLATES = [
         { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
         { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
@@ -131,38 +130,56 @@
         { title: '預約取消', text: '您好，您的預約已取消。若有需要請再次預約，謝謝。' }
     ];
 
-    // --- Components (Defined before App) ---
+    // --- Components ---
     
     const ServiceSelector = ({ services, onSelect }) => {
         const [stage, setStage] = useState('main'); 
         const [mainCat, setMainCat] = useState(null);
         const [subCat, setSubCat] = useState(null);
+        const [session, setSession] = useState(null);
 
         const handleMain = (c) => { setMainCat(c); setStage('sub'); };
         const handleSub = (t) => { 
             setSubCat(t); 
-            if(t === '補色') setStage('detail');
+            if(t === '補色') setStage('session');
             else {
                 const target = services.find(s => s.category === mainCat && s.type === t);
-                if(target) onSelect(target); else alert('查無此服務資料，請聯繫管理員');
+                if(target) onSelect(target); else alert('尚未設定此項目的價格，請聯繫管理員');
             }
         };
-        const handleDetail = (d) => {
-            const target = services.find(s => s.category === mainCat && s.type === subCat && s.detail === d);
-            if(target) onSelect(target); else alert('查無此服務資料，請聯繫管理員');
+        const handleSession = (s) => {
+            setSession(s);
+            setStage('time');
+        };
+        const handleTime = (timeRange) => {
+            // 尋找符合 Category + Type + Session + TimeRange 的服務
+            // 儲存格式範例: name: "霧眉 - 補色 (第一次回補 - 6個月內補色)"
+            const target = services.find(s => 
+                s.category === mainCat && 
+                s.type === subCat && 
+                s.session === session && 
+                s.timeRange === timeRange
+            );
+            if(target) onSelect(target); else alert('尚未設定此時段的補色價格');
         };
 
         const BackBtn = () => (
-            <button onClick={()=>setStage(stage==='detail'?'sub':'main')} className="mb-2 text-sm text-[#8d6e63] flex items-center gap-1">
+            <button onClick={()=>{
+                if(stage==='time') setStage('session');
+                else if(stage==='session') setStage('sub');
+                else if(stage==='sub') setStage('main');
+            }} className="mb-2 text-sm text-[#8d6e63] flex items-center gap-1">
                 <Icon path={Icons.chevronLeft} size={16}/> 上一步
             </button>
         );
 
+        // 1. 大分類
         if(stage === 'main') return (
             <div className="grid gap-2 animate-fade-in">
                 {MAIN_CATS.map(c => <button key={c} onClick={()=>handleMain(c)} className="p-4 border rounded-xl text-left font-bold hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{c}</button>)}
             </div>
         );
+        // 2. 首次/補色
         if(stage === 'sub') return (
             <div className="animate-fade-in">
                 <BackBtn/>
@@ -172,15 +189,38 @@
                 </div>
             </div>
         );
-        if(stage === 'detail') return (
+        // 3. 補色 - 第幾次
+        if(stage === 'session') return (
             <div className="animate-fade-in">
                 <BackBtn/>
-                <h3 className="font-bold mb-2">{mainCat} - {subCat}</h3>
+                <h3 className="font-bold mb-2">{mainCat} - 補色次數</h3>
                 <div className="grid gap-2">
-                    {DETAILS.map(d => <button key={d} onClick={()=>handleDetail(d)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{d}</button>)}
+                    {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{s}</button>)}
                 </div>
             </div>
         );
+        // 4. 補色 - 時間區間
+        if(stage === 'time') {
+            // 過濾出該分類、該次數的所有可用時間區間
+            const availableRanges = services
+                .filter(s => s.category === mainCat && s.type === '補色' && s.session === session)
+                .map(s => s.timeRange)
+                .filter((v, i, a) => a.indexOf(v) === i); // distinct
+
+            return (
+                <div className="animate-fade-in">
+                    <BackBtn/>
+                    <h3 className="font-bold mb-2">{mainCat} - {session} - 時間</h3>
+                    <div className="grid gap-2">
+                        {availableRanges.length > 0 ? availableRanges.map(tr => (
+                            <button key={tr} onClick={()=>handleTime(tr)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">
+                                {tr}
+                            </button>
+                        )) : <div className="text-gray-400 text-sm">尚無設定此項目的時間區間價格</div>}
+                    </div>
+                </div>
+            );
+        }
     };
 
     const StatusCheck = ({ user, onBack }) => {
@@ -252,7 +292,7 @@
                 <button onClick={onBack} className="mt-6 w-full py-3 text-gray-400 text-sm">返回首頁</button>
             </div>
         )
-    }
+    };
 
     const AdminLogin = ({ onBack, onLogin }) => {
         const [pin, setPin] = useState('');
@@ -261,40 +301,71 @@
 
     const AdminPanel = ({ user, settings, onBack, services, addons, discounts }) => {
         const [tab, setTab] = useState('svc');
-        const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], detail: '', price: '', duration: '90' });
+        // New Service Form
+        const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], session: TOUCHUP_SESSIONS[0], timeRange: '', price: '', duration: '90' });
         
         const [newDiscName, setNewDiscName] = useState('');
         const [newDiscAmount, setNewDiscAmount] = useState('200');
 
-        const submitSvcV23 = async () => {
+        const submitSvcV26 = async () => {
             if(!newSvc.price) return;
-            let name = `${newSvc.cat} - ${newSvc.type}`;
-            if(newSvc.type === '補色' && newSvc.detail) name += ` (${newSvc.detail})`;
+            
+            // 組合名稱供顯示
+            let fullName = `${newSvc.cat} - ${newSvc.type}`;
+            if(newSvc.type === '補色') {
+                fullName += ` (${newSvc.session} - ${newSvc.timeRange})`;
+            }
             
             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({
-                name: name,
+                name: fullName,
                 category: newSvc.cat,
                 type: newSvc.type,
-                detail: newSvc.detail,
+                session: newSvc.type === '補色' ? newSvc.session : null,
+                timeRange: newSvc.type === '補色' ? newSvc.timeRange : null,
                 price: Number(newSvc.price),
                 duration: Number(newSvc.duration)
             });
             alert('服務已新增');
         };
 
-        const initV23Data = async () => {
-            if(!confirm('這將會新增範例資料，確定嗎？')) return;
+        const initV26Data = async () => {
+            if(!confirm('這將會建立符合您價目表的預設資料，確定嗎？')) return;
             const batch = db.batch();
             
             const sCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
+            
+            // 根據提供的圖片建立資料
             const samples = [
-                { category: '霧眉', type: '首次', detail: '', price: 6000, duration: 120 },
-                { category: '霧眉', type: '補色', detail: '6個月內補色', price: 3000, duration: 90 },
-                { category: '霧唇', type: '首次', detail: '', price: 8000, duration: 150 },
+                { category: '霧眉', type: '首次', price: 4800, duration: 120 },
+                
+                // 霧眉第一次補色
+                { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '首次半年補色', price: 1000, duration: 90 },
+                { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '6-8個月補色', price: 1700, duration: 90 },
+                { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '8-12個月補色', price: 2700, duration: 90 },
+                { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '一年以上補色', price: 3300, duration: 90 },
+                
+                // 霧眉第二次補色
+                { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '4個月內補色', price: 900, duration: 90 },
+                { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '4-8個月補色', price: 1500, duration: 90 },
+                { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '8-12個月補色', price: 2500, duration: 90 },
+                { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '一年以上補色', price: 3000, duration: 90 },
+                
+                { category: '霧唇', type: '首次', price: 5200, duration: 150 },
+                { category: '淡色+霧唇', type: '首次', price: 6500, duration: 150 },
+                
+                // 霧唇第一次
+                { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '3個月內補色', price: 0, duration: 120 },
+                { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '4-6個月補色', price: 1000, duration: 120 },
+                
+                // 霧唇第二次
+                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '半年內補色', price: 1200, duration: 120 },
             ];
+
             samples.forEach(s => {
                 const ref = sCol.doc();
-                batch.set(ref, { ...s, name: `${s.category} - ${s.type} ${s.detail || ''}` });
+                let fname = `${s.category} - ${s.type}`;
+                if(s.type==='補色') fname += ` (${s.session} - ${s.timeRange})`;
+                batch.set(ref, { ...s, name: fname });
             });
 
             const dCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts');
@@ -302,7 +373,7 @@
             dSamples.forEach(d => { const ref = dCol.doc(); batch.set(ref, d); });
 
             await batch.commit();
-            alert('範例資料已建立');
+            alert('價目表範本已匯入！');
         };
         
         const addDiscount = async () => {
@@ -314,7 +385,7 @@
         return (
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4">
-                    <h2 className="font-bold">後台管理 (V25)</h2>
+                    <h2 className="font-bold">後台管理 (V26)</h2>
                     <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
                 </div>
                 
@@ -327,27 +398,47 @@
                     <div className="space-y-6">
                         <div className="bg-white p-4 rounded-xl shadow-sm border">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-[#4e342e]">新增服務 (層級式)</h3>
-                                <button onClick={initV23Data} className="text-xs text-blue-500 underline">⚡ 重置為 V25 預設資料</button>
+                                <h3 className="font-bold text-[#4e342e]">新增服務</h3>
+                                <button onClick={initV26Data} className="text-xs text-blue-500 underline">⚡ 匯入價目表範本</button>
                             </div>
-                            <div className="space-y-3">
-                                <select className="w-full border p-2 rounded" value={newSvc.cat} onChange={e=>setNewSvc({...newSvc, cat:e.target.value})}>
-                                    {MAIN_CATS.map(c=><option key={c} value={c}>{c}</option>)}
-                                </select>
-                                <select className="w-full border p-2 rounded" value={newSvc.type} onChange={e=>setNewSvc({...newSvc, type:e.target.value})}>
-                                    {SUB_CATS.map(c=><option key={c} value={c}>{c}</option>)}
-                                </select>
-                                {newSvc.type === '補色' && (
-                                    <select className="w-full border p-2 rounded" value={newSvc.detail} onChange={e=>setNewSvc({...newSvc, detail:e.target.value})}>
-                                        <option value="">請選擇補色時段</option>
-                                        {DETAILS.map(c=><option key={c} value={c}>{c}</option>)}
+                            <div className="space-y-3 text-sm">
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">大分類</label>
+                                    <select className="w-full border p-2 rounded" value={newSvc.cat} onChange={e=>setNewSvc({...newSvc, cat:e.target.value})}>
+                                        {MAIN_CATS.map(c=><option key={c} value={c}>{c}</option>)}
                                     </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">類型</label>
+                                    <select className="w-full border p-2 rounded" value={newSvc.type} onChange={e=>setNewSvc({...newSvc, type:e.target.value})}>
+                                        {SUB_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                {newSvc.type === '補色' && (
+                                    <div className="space-y-3 p-3 bg-gray-50 rounded border">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">回補次數</label>
+                                            <select className="w-full border p-2 rounded" value={newSvc.session} onChange={e=>setNewSvc({...newSvc, session:e.target.value})}>
+                                                {TOUCHUP_SESSIONS.map(c=><option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">時間區間 (顯示名稱)</label>
+                                            <input className="w-full border p-2 rounded" placeholder="例如：6個月內補色" value={newSvc.timeRange} onChange={e=>setNewSvc({...newSvc, timeRange:e.target.value})}/>
+                                        </div>
+                                    </div>
                                 )}
                                 <div className="flex gap-2">
-                                    <input type="number" className="flex-1 border p-2 rounded" placeholder="價格" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})}/>
-                                    <input type="number" className="w-24 border p-2 rounded" placeholder="分鐘" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})}/>
+                                    <div className="flex-1">
+                                        <label className="block text-xs text-gray-500 mb-1">價格</label>
+                                        <input type="number" className="w-full border p-2 rounded" placeholder="$" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})}/>
+                                    </div>
+                                    <div className="w-24">
+                                        <label className="block text-xs text-gray-500 mb-1">分鐘</label>
+                                        <input type="number" className="w-full border p-2 rounded" placeholder="min" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})}/>
+                                    </div>
                                 </div>
-                                <button onClick={submitSvcV23} className="w-full bg-[#8d6e63] text-white py-2 rounded">新增</button>
+                                <button onClick={submitSvcV26} className="w-full bg-[#8d6e63] text-white py-2 rounded">新增服務</button>
                             </div>
 
                             <div className="mt-6 border-t pt-4">
@@ -355,7 +446,7 @@
                                 <div className="space-y-2">
                                     {services.map(s=>(
                                         <div key={s.id} className="flex justify-between p-2 border rounded bg-gray-50 text-sm">
-                                            <span>{s.category} > {s.type} {s.detail} (${s.price})</span>
+                                            <span>{s.name} (${s.price})</span>
                                             <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400"><Icon path={Icons.trash} size={14}/></button>
                                         </div>
                                     ))}
@@ -389,14 +480,13 @@
         );
     };
 
-    // --- Main App (V25) ---
+    // --- Main App (V26) ---
     function App() {
       const [user, setUser] = useState(null);
       const [page, setPage] = useState('home'); 
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
       
-      // guests: { id, services, addons, time, customTime, name, phone, discount: null }
       const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
       
       const [date, setDate] = useState(new Date());
@@ -459,10 +549,10 @@
       
       const addServiceToGuest = (idx, s) => {
           const g = [...guests];
-          if(!g[idx].services.find(item=>item.id===s.id)) {
-              g[idx].services.push(s);
-              setGuests(g);
-          }
+          // 若是補色，只能選一個服務，清空其他的
+          if (s.type === '補色') g[idx].services = [s];
+          else if(!g[idx].services.find(item=>item.id===s.id)) g[idx].services.push(s);
+          setGuests(g);
       };
       const removeServiceFromGuest = (idx, sId) => {
           const g = [...guests];
@@ -481,10 +571,9 @@
           guests.forEach(g => {
               g.services.forEach(s => total += s.price);
               g.addons.forEach(a => total += a.price);
-              // V25 Logic: Identity Discount
+              // Identity Discount
               const isTouchUp = g.services.some(s => s.type === '補色');
               if (g.discount) {
-                  // 如果是補色，只允許當月壽星
                   if (isTouchUp && !g.discount.name.includes('壽星')) {
                       // 不扣款
                   } else {
@@ -493,9 +582,8 @@
               }
           });
           
-          // V25 Logic: Two People Discount
+          // Two People Discount
           if (isTwoPeople) {
-             // 規則：兩人同行，每人折200，但補色者不折
              guests.forEach(g => {
                  const isTouchUp = g.services.some(s => s.type === '補色');
                  if (!isTouchUp) {
@@ -614,7 +702,7 @@
                                                   <button onClick={()=>removeServiceFromGuest(i, s.id)} className="text-[#8d6e63]"><Icon path={Icons.trash} size={16}/></button>
                                               </div>
                                           ))}
-                                          <button onClick={()=>addServiceToGuest(i, {id:'dummy'})} className="text-xs text-[#8d6e63] underline mt-1">再加一項服務?</button>
+                                          <button onClick={()=>addServiceToGuest(i, {id:'dummy'})} className="text-xs text-[#8d6e63] underline mt-1">更改服務?</button>
                                       </div>
                                   ) : (
                                       <div className="mb-4">
@@ -645,7 +733,7 @@
                                               <option key={d.id} value={d.id}>{d.name} (折抵 ${d.amount})</option>
                                           ))}
                                       </select>
-                                      {g.services.some(s=>s.type==='補色') && <p className="text-[10px] text-red-400 mt-1">※ 補色項目僅適用壽星優惠</p>}
+                                      {g.services.some(s=>s.type==='補色') && <p className="text-[10px] text-red-400 mt-1">※ 補色項目僅適用壽星優惠，恕不適用其他折扣</p>}
                                   </div>
 
                                   {/* 加購區 */}
