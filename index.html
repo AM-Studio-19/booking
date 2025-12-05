@@ -10,9 +10,9 @@
   <style>
     body { font-family: 'Noto Serif TC', serif; background-color: #fdfbf7; color: #5d4037; }
     
-    .option-card { transition: all 0.2s; border: 2px solid #e5e7eb; }
-    .option-card:hover { border-color: #d7ccc8; }
-    .option-card.active { border-color: #8d6e63; background-color: #efebe9; color: #3e2723; }
+    .option-btn { @apply w-full p-3 rounded-xl border-2 border-[#e5e7eb] bg-white text-left transition-all duration-200; }
+    .option-btn:hover { @apply border-[#d7ccc8] bg-[#faf9f8]; }
+    .option-btn.active { @apply border-[#8d6e63] bg-[#efebe9] text-[#3e2723] font-bold; }
     
     .guest-block { border-left: 4px solid #8d6e63; padding-left: 1rem; margin-bottom: 2rem; }
     
@@ -86,8 +86,7 @@
     
     const BANK_INFO = { code: '822 (中國信託)', account: '1234-5678-9012', name: 'AM Studio', amountPerPerson: 1000 };
 
-    // --- Categories Definition ---
-    const MAIN_CATS = ["霧眉", "霧唇"]; // V28: 移除 "淡色+霧唇"
+    const MAIN_CATS = ["霧眉", "霧唇"]; 
     const SUB_CATS = ["首次", "補色"];
     const TOUCHUP_SESSIONS = ["第一次回補", "第二次以上"];
 
@@ -121,7 +120,8 @@
         zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
         tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
         up: <polyline points="18 15 12 9 6 15"/>,
-        down: <polyline points="6 9 12 15 18 9"/>
+        down: <polyline points="6 9 12 15 18 9"/>,
+        back: <path d="M19 12H5m7 7l-7-7 7-7"/>
     };
 
     const LOCATIONS = [
@@ -129,7 +129,6 @@
       { id: 'kaohsiung', name: '高雄工作室' }
     ];
     const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
-    
     const DEFAULT_TEMPLATES = [
         { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
         { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
@@ -137,58 +136,51 @@
         { title: '預約取消', text: '您好，您的預約已取消。若有需要請再次預約，謝謝。' }
     ];
 
-    // --- Components ---
-    
+    // --- Components (Fixed Order) ---
+
     const ServiceSelector = ({ services, onSelect }) => {
         const [stage, setStage] = useState('main'); 
         const [mainCat, setMainCat] = useState(null);
         const [subCat, setSubCat] = useState(null);
         const [session, setSession] = useState(null);
-        
-        // V28: 烏唇淡色開關
         const [isDarkLip, setIsDarkLip] = useState(false);
 
-        // Filter services for display logic
-        const currentServices = useMemo(() => {
-            return services.sort((a, b) => (a.order || 999) - (b.order || 999));
+        // Sort services
+        const sortedServices = useMemo(() => {
+            return [...services].sort((a, b) => (a.order || 999) - (b.order || 999));
         }, [services]);
 
         const handleMain = (c) => { setMainCat(c); setStage('sub'); };
         const handleSub = (t) => { 
             setSubCat(t); 
             if(t === '補色') setStage('session');
-            else {
-                // V28: 首次預約，顯示確認頁面 (處理烏唇)
-                setStage('confirm');
-            }
+            else setStage('confirm');
         };
         const handleSession = (s) => {
             setSession(s);
             setStage('time');
         };
         const handleTime = (timeRange) => {
-            const target = currentServices.find(s => 
+            const target = sortedServices.find(s => 
                 s.category === mainCat && 
                 s.type === subCat && 
                 s.session === session && 
                 s.timeRange === timeRange
             );
-            if(target) onSelect(target); else alert('尚未設定此時段的補色價格');
+            if(target) onSelect(target); else alert('查無此時段資料');
         };
-        
         const handleConfirmFirst = () => {
-             const target = currentServices.find(s => s.category === mainCat && s.type === subCat);
+             const target = sortedServices.find(s => s.category === mainCat && s.type === subCat);
              if(target) {
-                 // V28: 若勾選烏唇，動態修改價格與名稱
                  let finalService = { ...target };
                  if (mainCat === '霧唇' && isDarkLip) {
                      finalService.name += ' (含烏唇淡色)';
                      finalService.price += 1300;
-                     finalService.isDarkLip = true; // 標記
+                     finalService.isDarkLip = true; 
                  }
                  onSelect(finalService);
              } else {
-                 alert('查無此服務資料');
+                 alert('查無資料');
              }
         };
 
@@ -198,38 +190,33 @@
                 else if(stage==='time') setStage('session');
                 else if(stage==='session') setStage('sub');
                 else if(stage==='sub') setStage('main');
-            }} className="mb-2 text-sm text-[#8d6e63] flex items-center gap-1">
-                <Icon path={Icons.chevronLeft} size={16}/> 上一步
+            }} className="mb-4 text-sm text-[#8d6e63] flex items-center gap-1 font-bold">
+                <Icon path={Icons.back} size={16}/> 回上一層
             </button>
         );
 
-        // 1. 大分類
         if(stage === 'main') return (
-            <div className="grid gap-2 animate-fade-in">
-                {MAIN_CATS.map(c => <button key={c} onClick={()=>handleMain(c)} className="p-4 border rounded-xl text-left font-bold hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{c}</button>)}
+            <div className="space-y-2 animate-fade-in">
+                <p className="text-xs text-gray-400 mb-1">請選擇服務項目：</p>
+                {MAIN_CATS.map(c => <button key={c} onClick={()=>handleMain(c)} className="option-btn font-bold text-lg">{c}</button>)}
             </div>
         );
-        // 2. 首次/補色
         if(stage === 'sub') return (
-            <div className="animate-fade-in">
+            <div className="space-y-2 animate-fade-in">
                 <BackBtn/>
-                <h3 className="font-bold mb-2">{mainCat} - 選擇類型</h3>
-                <div className="grid gap-2">
-                    {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{t}</button>)}
-                </div>
+                <p className="text-xs text-gray-400 mb-1">{mainCat} - 類型：</p>
+                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn">{t}</button>)}
             </div>
         );
-        
-        // V28: 首次預約確認頁 (處理烏唇)
         if(stage === 'confirm') {
+            const baseSvc = sortedServices.find(s => s.category === mainCat && s.type === subCat);
+            const basePrice = baseSvc ? baseSvc.price : 0;
             return (
                 <div className="animate-fade-in">
                     <BackBtn/>
-                    <h3 className="font-bold mb-4">{mainCat} - {subCat}</h3>
-                    
-                    {/* 烏唇選項只在霧唇首次出現 */}
+                    <h3 className="font-bold mb-4 text-lg text-[#4e342e]">{mainCat} - {subCat}</h3>
                     {mainCat === '霧唇' && subCat === '首次' && (
-                        <div className="mb-4 p-4 bg-white border border-[#d7ccc8] rounded-xl">
+                        <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-xl shadow-sm">
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" className="w-5 h-5 accent-[#8d6e63]" checked={isDarkLip} onChange={e=>setIsDarkLip(e.target.checked)} />
                                 <div>
@@ -239,40 +226,37 @@
                             </label>
                         </div>
                     )}
-                    
-                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow-lg">確認選擇</button>
+                    <div className="mb-6 text-center">
+                        <div className="text-sm text-gray-500">預估金額</div>
+                        <div className="text-2xl font-bold text-[#8d6e63]">${isDarkLip ? basePrice + 1300 : basePrice}</div>
+                    </div>
+                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow-lg font-bold">確認選擇此項目</button>
                 </div>
             )
         }
-
-        // 3. 補色 - 第幾次
         if(stage === 'session') return (
-            <div className="animate-fade-in">
+            <div className="space-y-2 animate-fade-in">
                 <BackBtn/>
-                <h3 className="font-bold mb-2">{mainCat} - 補色次數</h3>
-                <div className="grid gap-2">
-                    {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">{s}</button>)}
-                </div>
+                <p className="text-xs text-gray-400 mb-1">{mainCat} - 補色次數：</p>
+                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn">{s}</button>)}
             </div>
         );
-        // 4. 補色 - 時間區間
         if(stage === 'time') {
-            const availableRanges = currentServices
+            const availableRanges = sortedServices
                 .filter(s => s.category === mainCat && s.type === '補色' && s.session === session)
-                .map(s => s.timeRange)
-                .filter((v, i, a) => a.indexOf(v) === i); 
+                .map(s => ({ label: s.timeRange, price: s.price }))
+                .filter((v,i,a) => a.findIndex(t => t.label === v.label) === i); // Unique
 
             return (
-                <div className="animate-fade-in">
+                <div className="space-y-2 animate-fade-in">
                     <BackBtn/>
-                    <h3 className="font-bold mb-2">{mainCat} - {session} - 時間</h3>
-                    <div className="grid gap-2">
-                        {availableRanges.length > 0 ? availableRanges.map(tr => (
-                            <button key={tr} onClick={()=>handleTime(tr)} className="p-4 border rounded-xl text-left hover:bg-[#efebe9] hover:border-[#8d6e63] bg-white transition-all">
-                                {tr}
-                            </button>
-                        )) : <div className="text-gray-400 text-sm">尚無設定此項目的時間區間價格</div>}
-                    </div>
+                    <p className="text-xs text-gray-400 mb-1">{mainCat} - {session} - 時間：</p>
+                    {availableRanges.length > 0 ? availableRanges.map(r => (
+                        <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn flex justify-between items-center">
+                            <span>{r.label}</span>
+                            <span className="font-bold text-[#8d6e63]">${r.price}</span>
+                        </button>
+                    )) : <div className="text-gray-400 text-center py-4">此區段尚無報價資料</div>}
                 </div>
             );
         }
@@ -349,16 +333,15 @@
         )
     };
 
+    // --- Admin Components ---
     const AdminLogin = ({ onBack, onLogin }) => {
         const [pin, setPin] = useState('');
         return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
     }
 
     const AdminPanel = ({ user, settings, onBack, services, addons, discounts }) => {
-        const [tab, setTab] = useState('book');
-        // Booking Filter Status
-        const [filterStatus, setFilterStatus] = useState('all'); 
-
+        const [tab, setTab] = useState('svc');
+        const [filterStatus, setFilterStatus] = useState('all');
         const [books, setBooks] = useState([]);
         const [editDates, setEditDates] = useState({kaohsiung:'', tainan:''});
         const [editSlots, setEditSlots] = useState({kaohsiung:'', tainan:''});
@@ -368,8 +351,8 @@
         const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
         const [editMode, setEditMode] = useState(false); 
 
+        // New Service Form
         const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], session: TOUCHUP_SESSIONS[0], timeRange: '', price: '', duration: '90' });
-        
         const [newDiscName, setNewDiscName] = useState('');
         const [newDiscAmount, setNewDiscAmount] = useState('200');
 
@@ -390,7 +373,6 @@
               .orderBy('date', 'desc').limit(50).onSnapshot(s => setBooks(s.docs.map(d=>({id:d.id, ...d.data()}))));
         }, []);
 
-        // Service Reordering
         const moveService = async (index, direction) => {
             const sorted = [...services].sort((a, b) => (a.order || 999) - (b.order || 999));
             if (direction === 'up' && index > 0) {
@@ -440,10 +422,6 @@
             alert(`${date} 的特殊時段已儲存！`); setSelectedDay(null);
         };
 
-        const copyDefaultSlots = (locId) => {
-            setDaySlots(editSlots[locId]);
-        }
-
         const saveTemplates = async () => {
             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('templates').set({ templates });
             alert('訊息範本已儲存');
@@ -460,12 +438,8 @@
 
         const submitSvcV26 = async () => {
             if(!newSvc.price) return;
-            
             let fullName = `${newSvc.cat} - ${newSvc.type}`;
-            if(newSvc.type === '補色') {
-                fullName += ` (${newSvc.session} - ${newSvc.timeRange})`;
-            }
-            
+            if(newSvc.type === '補色') fullName += ` (${newSvc.session} - ${newSvc.timeRange})`;
             const maxOrder = services.reduce((max, s) => Math.max(max, s.order || 0), 0);
 
             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({
@@ -481,35 +455,30 @@
             alert('服務已新增');
         };
 
-        const initV28Data = async () => {
-            if(!confirm('這將會建立 V28 預設資料，確定嗎？')) return;
+        const initV26Data = async () => {
+            if(!confirm('這將會建立圖片中的價目表資料，確定嗎？')) return;
             const batch = db.batch();
-            
             const sCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
             
+            // Based on uploaded image
             const samples = [
                 { category: '霧眉', type: '首次', price: 4800, duration: 120 },
-                // 霧眉第一次補色
                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '首次半年補色', price: 1000, duration: 90 },
                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '6-8個月補色', price: 1700, duration: 90 },
                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '8-12個月補色', price: 2700, duration: 90 },
                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '一年以上補色', price: 3300, duration: 90 },
-                // 霧眉第二次補色
                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '4個月內補色', price: 900, duration: 90 },
                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '4-8個月補色', price: 1500, duration: 90 },
                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '8-12個月補色', price: 2500, duration: 90 },
                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '一年以上補色', price: 3000, duration: 90 },
-                // 霧唇
                 { category: '霧唇', type: '首次', price: 5200, duration: 150 },
-                // 霧唇第一次
                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '3個月內補色', price: 0, duration: 120 },
                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '4-6個月補色', price: 1000, duration: 120 },
                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '6-12個月補色', price: 2500, duration: 120 },
                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '一年以上補色', price: 4000, duration: 120 },
-                // 霧唇第二次
-                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '半年內補色', price: 1200, duration: 120 },
-                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '一年內補色', price: 2000, duration: 120 },
-                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '一年以上補色', price: 3500, duration: 120 },
+                { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '半年內補色', price: 1200, duration: 120 },
+                { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '一年內補色', price: 2000, duration: 120 },
+                { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '一年以上補色', price: 3500, duration: 120 },
             ];
 
             samples.forEach((s, i) => {
@@ -556,7 +525,7 @@
         return (
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4 z-20">
-                    <h2 className="font-bold">後台管理 (V28)</h2>
+                    <h2 className="font-bold">後台管理 (V29)</h2>
                     <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
                 </div>
                 
@@ -614,8 +583,8 @@
                     <div className="space-y-6">
                         <div className="bg-white p-4 rounded-xl shadow-sm border">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-[#4e342e]">新增服務</h3>
-                                <button onClick={initV28Data} className="text-xs text-blue-500 underline">⚡ 匯入 V28 預設資料</button>
+                                <h3 className="font-bold text-[#4e342e]">新增服務 (層級)</h3>
+                                <button onClick={initV26Data} className="text-xs text-blue-500 underline">⚡ 匯入圖片價目表</button>
                             </div>
                             <div className="space-y-3 text-sm">
                                 <div>
@@ -639,8 +608,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-xs text-gray-500 mb-1">時間區間 (顯示名稱)</label>
-                                            <input className="w-full border p-2 rounded" placeholder="例如：6個月內補色" value={newSvc.timeRange} onChange={e=>setNewSvc({...newSvc, timeRange:e.target.value})}/>
+                                            <label className="block text-xs text-gray-500 mb-1">時間區間 (例如: 6-8個月內)</label>
+                                            <input className="w-full border p-2 rounded" placeholder="手動輸入區間名稱" value={newSvc.timeRange} onChange={e=>setNewSvc({...newSvc, timeRange:e.target.value})}/>
                                         </div>
                                     </div>
                                 )}
@@ -696,9 +665,432 @@
                         </div>
                     </div>
                 )}
+
+                {tab === 'msg' && (
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-[#4e342e]">常用回覆設定</h3>
+                            {templates.map((tpl, i) => (
+                                <div key={i} className="bg-white p-3 rounded-lg border">
+                                    <input className="font-bold w-full mb-2 p-1 border-b" value={tpl.title} onChange={e=>{ const newT = [...templates]; newT[i].title = e.target.value; setTemplates(newT); }} />
+                                    <textarea className="w-full text-sm p-2 bg-gray-50 rounded h-24" value={tpl.text} onChange={e=>{ const newT = [...templates]; newT[i].text = e.target.value; setTemplates(newT); }} />
+                                </div>
+                            ))}
+                            <button onClick={saveTemplates} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow">儲存所有訊息設定</button>
+                        </div>
+                )}
+
+                {tab === 'set' && (
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2 mb-4 bg-yellow-50 p-2 rounded text-sm text-yellow-800">
+                                <button onClick={()=>setEditMode(!editMode)} className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors ${editMode?'bg-yellow-500 justify-end':'bg-gray-300'}`}>
+                                    <div className="w-4 h-4 bg-white rounded-full"></div>
+                                </button>
+                                <span>{editMode ? '✏️ 模式：設定單日特殊時段 (點擊日期編輯)' : '👆 模式：快速開關日期 (點擊切換)'}</span>
+                            </div>
+
+                            {['kaohsiung','tainan'].map(locId => (
+                                <div key={locId} className="border p-4 rounded-xl bg-white">
+                                    <h3 className="font-bold mb-2 capitalize">{locId} 設定</h3>
+                                    {renderCalendar(locId)}
+                                    <div className="mt-2 text-xs text-gray-400 text-center">
+                                        {editMode ? '點擊日期可設定當天專屬營業時間' : '點擊日期可快速 開放 / 關閉 預約'}
+                                    </div>
+                                    {!editMode && (
+                                        <div className="mt-4">
+                                            <label className="text-xs font-bold block mb-1">預設時段 (全域)</label>
+                                            <input className="w-full border p-2 rounded text-sm" value={editSlots[locId]} onChange={e=>setEditSlots({...editSlots, [locId]:e.target.value})} />
+                                            <button onClick={()=>saveSettings(locId)} className="mt-2 w-full bg-[#8d6e63] text-white py-2 rounded text-sm">儲存基本設定</button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {selectedDay && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <div className="bg-white w-full max-w-sm rounded-xl p-6">
+                                        <h3 className="font-bold mb-4 text-lg border-b pb-2">{selectedDay.date} 特殊設定</h3>
+                                        <p className="text-sm text-gray-500 mb-2">在此輸入該日的特殊營業時間，留空則依預設規則或關閉。</p>
+                                        <input className="w-full border p-3 rounded mb-4" placeholder="例如: 10:00, 14:00" value={daySlots} onChange={e=>setDaySlots(e.target.value)} />
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>setSelectedDay(null)} className="flex-1 py-2 bg-gray-100 rounded">取消</button>
+                                            <button onClick={saveDayRule} className="flex-1 py-2 bg-[#8d6e63] text-white rounded">儲存單日</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                {msgModal && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white w-full max-w-sm rounded-xl p-4">
+                            <h3 className="font-bold mb-4">選擇傳送訊息</h3>
+                            <div className="space-y-2">{templates.map((t,i) => (<button key={i} onClick={()=>sendTemplateMsg(t)} className="w-full text-left p-3 border rounded hover:bg-gray-50"><div className="font-bold text-[#5d4037]">{t.title}</div><div className="text-xs text-gray-400 truncate">{t.text}</div></button>))}</div>
+                            <button onClick={()=>setMsgModal(null)} className="mt-4 w-full py-2 text-gray-400">取消</button>
+                        </div>
+                    </div>
+                )}
+
             </div>
         );
     };
+
+    // --- Main App (V29) ---
+    function App() {
+      const [user, setUser] = useState(null);
+      const [page, setPage] = useState('home'); 
+      const [step, setStep] = useState(1);
+      const [loc, setLoc] = useState(null);
+      const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
+      const [date, setDate] = useState(new Date());
+      const [info, setInfo] = useState({notes:''});
+      const [isTwoPeople, setIsTwoPeople] = useState(false);
+      const [services, setServices] = useState([]);
+      const [addons, setAddons] = useState([]);
+      const [discounts, setDiscounts] = useState([]);
+      const [settings, setSettings] = useState({});
+      const [booked, setBooked] = useState([]);
+
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('p') === 'check') setPage('check-status');
+        auth.signInAnonymously().catch(e => console.warn(e));
+        if (window.liff) window.liff.init({ liffId: LIFF_ID });
+        return auth.onAuthStateChanged(setUser);
+      }, []);
+
+      useEffect(() => {
+        if (!user) return;
+        const pub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
+        pub.collection('services').onSnapshot(s => setServices(s.docs.map(d => ({id:d.id, ...d.data()}))));
+        pub.collection('addons').onSnapshot(s => setAddons(s.docs.map(d => ({id:d.id, ...d.data()}))));
+        pub.collection('discounts').onSnapshot(s => setDiscounts(s.docs.map(d => ({id:d.id, ...d.data()}))));
+        pub.collection('settings').onSnapshot(s => { 
+            const obj = {}; s.forEach(d => obj[d.id] = d.data()); setSettings(obj); 
+        });
+      }, [user]);
+
+      useEffect(() => {
+        if (!loc || !date) return;
+        const dStr = date.toISOString().split('T')[0];
+        db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
+          .where('locationId', '==', loc.id).where('date', '==', dStr)
+          .onSnapshot(s => setBooked(s.docs.map(d => d.data().time)));
+      }, [loc, date]);
+
+      const isDateOpen = (d) => {
+          if (!loc) return true;
+          const conf = settings[loc.id];
+          if (!conf?.allowedDates?.length) return true;
+          return conf.allowedDates.includes(d.toISOString().split('T')[0]);
+      };
+      
+      const getSlots = (d) => {
+          if (!loc) return DEFAULT_SLOTS;
+          const dStr = d.toISOString().split('T')[0];
+          const conf = settings[loc.id];
+          if (conf?.specialRules && conf.specialRules[dStr]) return conf.specialRules[dStr];
+          return conf?.timeSlots?.length ? conf.timeSlots : DEFAULT_SLOTS;
+      };
+
+      // Actions
+      const addGuest = () => setGuests([...guests, { id: Date.now(), services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
+      const removeGuest = (idx) => { const g = [...guests]; g.splice(idx, 1); setGuests(g); };
+      const updateGuest = (idx, field, val) => { const g = [...guests]; g[idx][field] = val; setGuests(g); };
+      
+      const addServiceToGuest = (idx, s) => {
+          const g = [...guests];
+          if (s.type === '補色') g[idx].services = [s];
+          else if(!g[idx].services.find(item=>item.id===s.id)) g[idx].services.push(s);
+          setGuests(g);
+      };
+      const removeServiceFromGuest = (idx, sId) => {
+          const g = [...guests];
+          g[idx].services = g[idx].services.filter(s => s.id !== sId);
+          setGuests(g);
+      };
+      const toggleGuestAddon = (idx, ad) => {
+          const g = [...guests];
+          const has = g[idx].addons.find(a=>a.id===ad.id);
+          g[idx].addons = has ? g[idx].addons.filter(a=>a.id!==ad.id) : [...g[idx].addons, ad];
+          setGuests(g);
+      };
+
+      const calculateTotal = () => {
+          let total = 0;
+          guests.forEach(g => {
+              g.services.forEach(s => total += s.price);
+              g.addons.forEach(a => total += a.price);
+              const isTouchUp = g.services.some(s => s.type === '補色');
+              if (g.discount) {
+                  if (isTouchUp) {
+                      if (g.discount.name.includes('壽星')) total -= 100;
+                  } else {
+                      total -= g.discount.amount;
+                  }
+              }
+          });
+          
+          if (isTwoPeople) {
+             guests.forEach(g => {
+                 const isTouchUp = g.services.some(s => s.type === '補色');
+                 if (!isTouchUp) total -= 200;
+             });
+          }
+          return total;
+      };
+
+      const handleSubmit = async () => {
+          if (!user) return alert('連線中...');
+          const batch = db.batch();
+          const dStr = date.toISOString().split('T')[0];
+          const groupId = Date.now().toString(); 
+          const totalP = calculateTotal();
+
+          try {
+              guests.forEach((g, idx) => {
+                  const tVal = g.time === '微調時段申請' ? `微調 ${g.customTime}` : g.time;
+                  const svcNames = g.services.map(s=>s.name).join('+');
+                  const discountName = g.discount ? g.discount.name : '';
+                  const orderRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc();
+                  const orderData = {
+                      locationId: loc.id, locationName: loc.name,
+                      serviceId: g.services.map(s=>s.id), serviceName: svcNames,
+                      addons: g.addons, 
+                      date: dStr, time: tVal,
+                      customerName: g.name, customerPhone: g.phone,
+                      notes: info.notes,
+                      discountIdentity: discountName, 
+                      groupId, guestIndex: idx + 1,
+                      totalPrice: totalP, 
+                      status: 'pending', paymentStatus: 'unpaid', msgSent: false,
+                      createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
+                  };
+                  batch.set(orderRef, orderData);
+              });
+
+              await batch.commit();
+              
+              const deposit = guests.length * BANK_INFO.amountPerPerson;
+              const reportLink = `https://liff.line.me/${LIFF_ID}?p=check`;
+              const msg = `【預約申請通知】\n📍 ${loc.name}\n📅 ${dStr}\n👤 人數：${guests.length}位\n💰 總金額：$${totalP}\n⚠️ 訂金：$${deposit} (每人$${BANK_INFO.amountPerPerson})\n\n🔗 回報匯款：\n${reportLink}`;
+              
+              if (window.liff?.isInClient()) {
+                  try { await window.liff.sendMessages([{ type: 'text', text: msg }]); } catch (err) {}
+              } else {
+                  alert("預約已送出！\n請複製連結回報匯款：\n" + reportLink);
+              }
+              setStep(6);
+          } catch (e) { alert('Error: ' + e.message); }
+      };
+
+      const reset = () => {
+          setStep(1); setLoc(null); setGuests([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
+          setInfo({notes:''}); setPage('home');
+      };
+
+      if (page === 'admin-login') return <AdminLogin onBack={()=>setPage('home')} onLogin={()=>setPage('admin')} />;
+      if (page === 'admin') return <AdminPanel user={user} settings={settings} onBack={()=>setPage('home')} services={services} addons={addons} discounts={discounts} />;
+      if (page === 'check-status') return <StatusCheck user={user} onBack={()=>setPage('home')} />;
+
+      if (page === 'home') {
+          return (
+              <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
+                  <button onClick={()=>setPage('admin-login')} className="absolute top-4 left-4 p-2 text-gray-300 hover:text-gray-500"><Icon path={Icons.settings}/></button>
+                  <div className="max-w-md w-full text-center space-y-8">
+                      <div><h1 className="text-4xl font-bold tracking-widest text-[#4e342e] mb-2">AM Studio</h1><p className="text-[#8d6e63] tracking-wider">線上預約系統</p></div>
+                      <div className="grid gap-4">
+                          {LOCATIONS.map(l => (
+                              <button key={l.id} onClick={()=>{setLoc(l); setPage('booking'); setStep(2);}} className="group bg-white border-2 border-[#e5e7eb] hover:border-[#8d6e63] p-6 rounded-xl flex items-center justify-between transition-all shadow-sm hover:shadow-md">
+                                  <div className="flex items-center gap-4"><div className="w-12 h-12 bg-[#efebe9] rounded-full flex items-center justify-center text-[#5d4037] group-hover:bg-[#8d6e63] group-hover:text-white transition-colors"><Icon path={Icons.map} size={24}/></div><div className="text-left"><h3 className="text-lg font-bold text-[#4e342e]">{l.name}</h3><p className="text-xs text-gray-400">立即預約</p></div></div>
+                                  <div className="text-gray-300 group-hover:text-[#8d6e63]"><Icon path={Icons.chevronRight}/></div>
+                              </button>
+                          ))}
+                          <button onClick={()=>setPage('check-status')} className="w-full bg-white border border-[#d7ccc8] text-[#8d6e63] p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9]"><Icon path={Icons.search} size={18}/> 查詢預約 / 回報匯款</button>
+                      </div>
+                  </div>
+              </div>
+          );
+      }
+
+      const depositTotal = guests.length * BANK_INFO.amountPerPerson;
+
+      // Booking Flow
+      return (
+          <div className="min-h-screen bg-white md:bg-[#f4f1ea] flex flex-col">
+              <div className="bg-white p-4 sticky top-0 z-10 border-b flex items-center justify-between shadow-sm">
+                  <button onClick={()=>{ if(step===2) reset(); else setStep(s=>s-1); }} className="p-2 text-[#8d6e63]"><Icon path={Icons.chevronLeft}/></button>
+                  <span className="font-bold text-[#4e342e] text-sm">{step===2?'選擇項目':step===3?'選擇時間':step===4?'基本資料':step===5?'訂金說明':'預約完成'}</span>
+                  <div className="w-8"></div>
+              </div>
+
+              <div className="flex-1 p-6 max-w-lg mx-auto w-full overflow-y-auto pb-20">
+                  {step === 2 && (
+                      <div className="space-y-8 fade-in">
+                          {guests.map((g, i) => (
+                              <div key={g.id} className="guest-block">
+                                  <div className="flex justify-between items-center mb-3">
+                                      <h3 className="text-lg font-bold text-[#5d4037]">第 {i+1} 位</h3>
+                                      {i > 0 && <button onClick={()=>removeGuest(i)} className="text-xs text-red-400 border border-red-200 px-2 py-1 rounded"><Icon path={Icons.trash} size={14}/></button>}
+                                  </div>
+                                  
+                                  {g.services.length > 0 ? (
+                                      <div className="space-y-2 mb-4">
+                                          {g.services.map(s => (
+                                              <div key={s.id} className="flex justify-between items-center p-3 bg-[#efebe9] rounded-lg border border-[#d7ccc8]">
+                                                  <div><div className="font-bold text-[#4e342e]">{s.name}</div><div className="text-xs opacity-70">${s.price}</div></div>
+                                                  <button onClick={()=>removeServiceFromGuest(i, s.id)} className="text-[#8d6e63]"><Icon path={Icons.trash} size={16}/></button>
+                                              </div>
+                                          ))}
+                                          <button onClick={()=>addServiceToGuest(i, {id:'dummy'})} className="text-xs text-[#8d6e63] underline mt-1">更改服務?</button>
+                                      </div>
+                                  ) : (
+                                      <div className="mb-4">
+                                          <ServiceSelector services={services} onSelect={(s)=>addServiceToGuest(i, s)} />
+                                      </div>
+                                  )}
+                                  
+                                  <div className="mb-4">
+                                      <label className="text-xs font-bold text-gray-500 block mb-1 flex items-center gap-1"><Icon path={Icons.tag} size={14}/> 優惠身份</label>
+                                      <select className="w-full p-2 rounded border bg-white text-sm" value={g.discount ? g.discount.id : ''} onChange={(e) => { const selected = discounts.find(d => d.id === e.target.value); updateGuest(i, 'discount', selected || null); }}>
+                                          <option value="">無 (保持原價)</option>
+                                          {discounts.filter(d => { const isTouchUp = g.services.some(s => s.type === '補色'); if (isTouchUp) return d.name.includes('壽星'); return true; }).map(d => (<option key={d.id} value={d.id}>{d.name} (折抵 ${d.amount})</option>))}
+                                      </select>
+                                      {g.services.some(s=>s.type==='補色') && <p className="text-[10px] text-red-400 mt-1">※ 補色項目僅適用壽星優惠，恕不適用其他折扣</p>}
+                                  </div>
+
+                                  {addons.length > 0 && (
+                                      <div className="mt-4 pt-4 border-t border-dashed">
+                                          <p className="text-xs text-gray-400 mb-2">加購項目</p>
+                                          <div className="grid grid-cols-2 gap-2">{addons.map(ad => {
+                                              const checked = g.addons.some(a=>a.id===ad.id);
+                                              return (<button key={ad.id} onClick={()=>toggleGuestAddon(i, ad)} className={`option-card p-2 rounded-lg text-xs text-center ${checked ? 'active' : 'bg-white'}`}><div className="font-bold">{ad.name}</div><div className="opacity-70">{ad.price>0?'+':''}{ad.price}</div></button>);
+                                          })}</div>
+                                      </div>
+                                  )}
+                              </div>
+                          ))}
+                          
+                          <button onClick={addGuest} className="w-full py-3 border-2 border-dashed border-[#8d6e63] text-[#8d6e63] rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9]"><Icon path={Icons.plus}/> 新增一位同伴 (兩人同行)</button>
+
+                          <div className="bg-[#8d6e63] text-white p-4 rounded-xl flex justify-between items-center shadow-lg sticky bottom-4">
+                              <div className="text-sm">
+                                  總計人數：{guests.length} 位
+                                  {isTwoPeople && <span className="block text-xs opacity-80">(含兩人同行優惠)</span>}
+                              </div>
+                              <div className="font-bold text-lg">${calculateTotal()}</div>
+                          </div>
+                      </div>
+                  )}
+
+                  {step === 3 && (
+                      <div className="space-y-6 fade-in">
+                          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                              <div className="flex justify-between items-center mb-4">
+                                  <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1, 1))} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><Icon path={Icons.chevronLeft}/></button>
+                                  <span className="font-bold text-lg">{date.getFullYear()}年 {date.getMonth()+1}月</span>
+                                  <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()+1, 1))} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><Icon path={Icons.chevronRight}/></button>
+                              </div>
+                              <div className="grid grid-cols-7 gap-1 text-center mb-2">{['日','一','二','三','四','五','六'].map(d=><span key={d} className="text-xs text-gray-400">{d}</span>)}</div>
+                              <div className="grid grid-cols-7 gap-1">
+                                  {Array.from({length: new Date(date.getFullYear(), date.getMonth(), 1).getDay()}).map((_,i)=><div key={'e'+i}/>)}
+                                  {Array.from({length: new Date(date.getFullYear(), date.getMonth()+1, 0).getDate()}).map((_,i)=>{
+                                      const d = i+1;
+                                      const curr = new Date(date.getFullYear(), date.getMonth(), d);
+                                      const open = isDateOpen(curr);
+                                      const isPast = curr < new Date().setHours(0,0,0,0);
+                                      const isSel = d === date.getDate();
+                                      return <button key={d} disabled={isPast || !open} onClick={()=>{setDate(curr);}} className={`h-9 w-9 rounded-full text-sm flex items-center justify-center transition-all ${isSel?'bg-[#8d6e63] text-white shadow-md':(isPast||!open)?'text-gray-200':'hover:bg-[#efebe9]'}`}>{d}</button>
+                                  })}
+                              </div>
+                          </div>
+                          {isDateOpen(date) ? (
+                              <div className="space-y-6">
+                                  <div className="text-red-500 text-xs text-center bg-red-50 p-2 rounded">⚠️ 多人同行建議選擇連續時段</div>
+                                  {guests.map((g, idx) => {
+                                      const myTime = g.time;
+                                      const taken = booked.concat(guests.filter((_, i)=>i!==idx).map(og=>og.time).filter(t=>t));
+                                      return (
+                                          <div key={g.id} className="bg-white p-4 rounded-xl border shadow-sm">
+                                              <div className="font-bold text-[#5d4037] mb-2">第 {idx+1} 位時段</div>
+                                              <div className="grid grid-cols-3 gap-2">
+                                                  {getSlots(date).map(t => (
+                                                      <button key={t} disabled={taken.includes(t)} onClick={()=>{ updateGuest(idx, 'time', t); updateGuest(idx, 'customTime', ''); }} className={`py-2 rounded border text-xs ${myTime===t?'bg-[#8d6e63] text-white border-[#8d6e63]':taken.includes(t)?'bg-gray-100 text-gray-300 cursor-not-allowed':'bg-white'}`}>{t}</button>
+                                                  ))}
+                                              </div>
+                                              {myTime === '微調時段申請' && (
+                                                  <input type="time" className="mt-2 w-full border p-2 rounded text-sm" value={g.customTime} onChange={e=>updateGuest(idx, 'customTime', e.target.value)} />
+                                              )}
+                                          </div>
+                                      )
+                                  })}
+                              </div>
+                          ) : <div className="text-center py-8 bg-gray-50 rounded-xl text-gray-400">此日期未開放</div>}
+                      </div>
+                  )}
+                  
+                  {step === 4 && (
+                      <div className="space-y-6 fade-in">
+                          <div className="space-y-4">
+                              {guests.map((g, i) => (
+                                  <div key={g.id} className="bg-white p-4 rounded-lg border shadow-sm">
+                                      <h3 className="text-sm font-bold text-[#5d4037] mb-3">第 {i+1} 位顧客資料</h3>
+                                      <div className="space-y-3">
+                                          <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" placeholder="姓名" value={g.name} onChange={e=>updateGuest(i, 'name', e.target.value)} />
+                                          <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" type="tel" placeholder="電話" value={g.phone} onChange={e=>updateGuest(i, 'phone', e.target.value)} />
+                                      </div>
+                                  </div>
+                              ))}
+                              <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">其他備註</label><textarea className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63] h-24 resize-none" placeholder="需卸甲、皮膚敏感..." value={info.notes} onChange={e=>setInfo({...info,notes:e.target.value})} /></div>
+                          </div>
+                          <div className="flex justify-between text-sm border-t pt-2"><span className="text-gray-500">總金額</span><span className="font-bold text-[#8d6e63]">${calculateTotal()}</span></div>
+                      </div>
+                  )}
+
+                  {step === 5 && (
+                      <div className="space-y-6 fade-in">
+                          <h2 className="text-xl font-bold text-[#4e342e]">訂金說明</h2>
+                          <div className="bg-orange-50 border border-orange-200 p-5 rounded-xl text-sm leading-relaxed text-[#5d4037]">
+                              <p className="mb-4 font-bold">總人數：{guests.length} 位</p>
+                              <div className="bg-white p-4 rounded-lg border border-orange-100 mb-4">
+                                  <p>銀行：<span className="font-bold">{BANK_INFO.code}</span></p>
+                                  <p>帳號：<span className="font-bold text-lg">{BANK_INFO.account}</span></p>
+                                  <p>戶名：{BANK_INFO.name}</p>
+                                  <p className="mt-2 text-red-600 font-bold">總訂金：${depositTotal}</p>
+                              </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                              <input type="checkbox" id="agree" className="w-5 h-5 accent-[#8d6e63]"/>
+                              <label htmlFor="agree" className="text-sm">我已閱讀並同意支付訂金規則</label>
+                          </div>
+                      </div>
+                  )}
+
+                  {step === 6 && (
+                      <div className="text-center pt-10 fade-in">
+                          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600"><Icon path={Icons.check} size={40}/></div>
+                          <h2 className="text-2xl font-bold mb-2 text-[#4e342e]">預約送出成功！</h2>
+                          <p className="text-gray-500 text-sm mb-8">請記得匯款並回報。</p>
+                          <button onClick={reset} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow-lg shadow-[#8d6e63]/30">返回首頁</button>
+                      </div>
+                  )}
+              </div>
+
+              {step < 6 && (
+                  <div className="p-4 bg-white border-t safe-bottom">
+                      <button onClick={()=>{
+                          if(step===2 && guests.some(g=>g.services.length===0)) return alert('請為每位客人選擇服務');
+                          if(step===3 && guests.some(g=>!g.time || (g.time==='微調時段申請' && !g.customTime))) return alert('請為每位客人選擇時間');
+                          if(step===4 && guests.some(g=>!g.name || !g.phone)) return alert('請填寫所有資料');
+                          if(step===5 && !document.getElementById('agree').checked) return alert('請勾選同意');
+                          if(step===5) handleSubmit(); else setStep(s=>s+1);
+                      }} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-[#8d6e63]/30 active:scale-[0.98] transition-transform">
+                          {step===5 ? '送出預約' : '下一步'}
+                      </button>
+                  </div>
+              )}
+          </div>
+      );
+    }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
