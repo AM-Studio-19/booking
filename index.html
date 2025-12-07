@@ -8,20 +8,36 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Noto Serif TC', serif; background-color: #fdfbf7; color: #5d4037; }
+    body { font-family: 'Noto Serif TC', serif; background-color: #f9f8f6; color: #5d4037; }
     
-    /* 優化後的按鈕樣式 (有底色、更好辨識) */
-    .service-btn { 
-      @apply w-full p-4 rounded-xl border border-[#d7ccc8] bg-white text-left text-[#5d4037] shadow-sm transition-all duration-200 flex justify-between items-center mb-3 font-bold text-lg;
+    /* V37: 極簡卡片按鈕 (仿 App 風格) */
+    .option-btn { 
+      @apply w-full p-5 rounded-2xl mb-3 flex justify-between items-center transition-all duration-200 shadow-sm relative overflow-hidden;
+      background-color: #ffffff;      /* 純白底，最明亮 */
+      color: #4b5563;                /* 深灰字 */
+      border: 1px solid #f0ebe9;     /* 極淡的邊框 */
     }
-    .service-btn:hover { @apply bg-[#faf9f8] border-[#8d6e63] translate-x-1; }
-    .service-btn:active { @apply bg-[#efebe9] scale-[0.98]; }
     
-    .option-card { transition: all 0.2s; border: 2px solid #e5e7eb; }
-    .option-card:hover { border-color: #d7ccc8; }
-    .option-card.active { border-color: #8d6e63; background-color: #efebe9; color: #3e2723; }
+    /* 滑鼠經過 */
+    .option-btn:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(141, 110, 99, 0.08); 
+      border-color: #d7ccc8;
+    }
     
-    .guest-block { @apply border-l-4 border-[#8d6e63] pl-4 mb-8 relative; }
+    /* 選中狀態：奶茶色框 + 打勾 */
+    .option-btn.active { 
+      background-color: #fffaf9;     /* 極淺粉白底 */
+      color: #5d4037;                /* 深咖啡字 */
+      border: 2px solid #8d6e63;     /* 明顯的邊框 */
+      font-weight: bold;
+    }
+
+    /* 隱藏原生箭頭，改用打勾 */
+    .option-btn .check-icon { display: none; }
+    .option-btn.active .check-icon { display: block; color: #8d6e63; }
+
+    .guest-block { @apply border-l-4 border-[#8d6e63] pl-5 mb-10 relative bg-white p-5 rounded-r-2xl shadow-sm; }
     
     .spinner {
       border: 3px solid #f3f3f3; border-top: 3px solid #8d6e63; border-radius: 50%;
@@ -29,30 +45,19 @@
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     
-    .fade-in { animation: fadeIn 0.3s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* 後台月曆樣式 */
-    .date-cell { min-height: 80px; background: white; border: 1px solid #f3f4f6; padding: 4px; cursor: default; }
-    .date-cell:hover { background: #fafafa; }
+    .date-cell { @apply rounded-lg transition-all duration-200; }
+    .date-cell.selected { background-color: #8d6e63; color: white; font-weight: bold; box-shadow: 0 4px 6px rgba(141, 110, 99, 0.2); }
+    .date-cell.has-rule { border-bottom: 3px solid #d97706; }
     
-    /* 月曆上的預約小標籤 */
-    .cal-event { 
-      @apply text-[10px] p-1 rounded mb-1 cursor-pointer truncate shadow-sm transition-all;
-      background-color: #efebe9; color: #5d4037; border-left: 2px solid #8d6e63;
-    }
-    .cal-event:hover { @apply bg-[#8d6e63] text-white; }
-    
-    /* 閃爍效果 (用於跳轉定位) */
-    @keyframes highlight {
-      0% { background-color: #fef08a; }
-      100% { background-color: white; }
-    }
-    .highlight-row { animation: highlight 2s ease-out; }
+    .status-tab { @apply px-4 py-2 rounded-full text-sm font-bold cursor-pointer transition-all border shadow-sm; }
+    .status-tab.active { @apply bg-[#8d6e63] text-white border-[#8d6e63] shadow-md; }
+    .status-tab.inactive { @apply bg-white text-[#8d6e63] border-[#e7e0da] hover:bg-[#faf7f5]; }
 
-    .status-tab { @apply px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors border; }
-    .status-tab.active { @apply bg-[#8d6e63] text-white border-[#8d6e63]; }
-    .status-tab.inactive { @apply bg-white text-gray-500 border-gray-200 hover:bg-gray-50; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -67,13 +72,12 @@
 </head>
 <body>
   <div id="root">
-    <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8d6e63;">
+    <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8d6e63; background-color: #faf9f6;">
       <div class="spinner"></div>
-      <p id="loading-text">系統啟動中...</p>
+      <p id="loading-text" class="mt-4 font-bold tracking-widest text-sm">AM STUDIO</p>
     </div>
   </div>
 
-  <!-- Error Handling -->
   <div id="error-box" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; padding:20px; text-align:center;">
     <div style="max-width:500px; margin:50px auto; border:2px solid #ef4444; padding:20px; background:#fff; border-radius:8px;">
         <h2 style="color:#ef4444; font-size:24px; margin-bottom:10px;">⚠️ 發生錯誤</h2>
@@ -214,21 +218,22 @@
                 else if(stage==='session') setStage('sub');
                 else if(stage==='sub') setStage('main');
                 else if(stage==='main') onCancel();
-            }} className="mb-4 text-base text-[#8d6e63] flex items-center gap-2 font-bold px-4 py-2 rounded-lg hover:bg-gray-100 bg-white border border-gray-200 shadow-sm">
+            }} className="mb-4 text-base text-[#8d6e63] flex items-center gap-2 font-bold px-4 py-2 rounded-xl hover:bg-white bg-[#f9f8f6] border border-[#e7e0da] shadow-sm">
                 <Icon path={Icons.back} size={20}/> {stage==='main' ? '取消' : '返回上一步'}
             </button>
         );
 
         if(stage === 'main') return (
             <div className="space-y-4 animate-fade-in">
-                <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500 font-bold">請選擇服務項目：</p>
+                <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm text-[#8d6e63] font-bold tracking-wide">請選擇服務項目：</p>
                     <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 p-2">取消</button>
                 </div>
                 <div className="grid gap-3">
                     {MAIN_CATS.map(c => (
-                        <button key={c} onClick={()=>handleMain(c)} className="service-btn">
-                            {c} <Icon path={Icons.chevronRight}/>
+                        <button key={c} onClick={()=>handleMain(c)} className="option-btn text-xl font-bold">
+                            {c}
+                            {/* V37: 移除箭頭，加入隱藏的打勾圖示供選中狀態使用 (雖然這邊是跳轉，但保持結構一致) */}
                         </button>
                     ))}
                 </div>
@@ -239,8 +244,8 @@
             <div className="space-y-3 animate-fade-in">
                 <BackBtn/>
                 <h3 className="font-bold text-xl text-[#4e342e] mb-2 px-1">{mainCat}</h3>
-                <p className="text-sm text-gray-500 px-1">請選擇類型：</p>
-                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="service-btn">{t} <Icon path={Icons.chevronRight}/></button>)}
+                <p className="text-sm text-[#8d6e63] px-1 mb-2">請選擇類型：</p>
+                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn font-bold">{t}</button>)}
             </div>
         );
         
@@ -252,25 +257,25 @@
                     <BackBtn/>
                     <h3 className="font-bold mb-4 text-lg text-[#4e342e] px-1">{mainCat} - {subCat}</h3>
                     {mainCat === '霧唇' && subCat === '首次' && (
-                        <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors" onClick={()=>setIsDarkLip(!isDarkLip)}>
-                            <label className="flex items-center gap-3 cursor-pointer pointer-events-none">
-                                <div className={`w-6 h-6 rounded border flex items-center justify-center ${isDarkLip?'bg-[#8d6e63] border-[#8d6e63]':'bg-white border-gray-400'}`}>
+                        <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-2xl shadow-sm cursor-pointer hover:bg-[#fff8f6] transition-colors" onClick={()=>setIsDarkLip(!isDarkLip)}>
+                            <label className="flex items-center gap-4 cursor-pointer pointer-events-none">
+                                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${isDarkLip?'bg-[#8d6e63] border-[#8d6e63]':'bg-white border-gray-400'}`}>
                                     {isDarkLip && <Icon path={Icons.check} className="text-white" size={16}/>}
                                 </div>
                                 <div>
-                                    <div className="font-bold text-[#5d4037]">👄 需要烏唇/淡色處理？</div>
-                                    <div className="text-xs text-gray-500">若唇色較深或暗沈，需先進行淡色處理 (+$1300)</div>
+                                    <div className="font-bold text-[#5d4037] text-lg">👄 需要烏唇/淡色處理？</div>
+                                    <div className="text-sm text-gray-500 mt-1">若唇色較深或暗沈，需先進行淡色處理 (+$1300)</div>
                                 </div>
                             </label>
                         </div>
                     )}
-                    <div className="mb-6 text-center p-4 bg-[#efebe9] rounded-xl">
-                        <div className="text-sm text-gray-500">預估金額</div>
-                        <div className="text-3xl font-bold text-[#8d6e63]">
+                    <div className="mb-6 text-center p-6 bg-[#fff8f6] rounded-2xl border border-[#e7e0da]">
+                        <div className="text-sm text-gray-500 mb-1">預估金額</div>
+                        <div className="text-4xl font-bold text-[#8d6e63]">
                             ${isDarkLip ? basePrice + 1300 : basePrice}
                         </div>
                     </div>
-                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl shadow-lg font-bold text-lg hover:bg-[#795548] transition-colors">確認選擇此項目</button>
+                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl shadow-lg font-bold text-lg hover:bg-[#795548] active:scale-[0.98] transition-all">確認選擇此項目</button>
                 </div>
             )
         }
@@ -279,8 +284,8 @@
             <div className="space-y-3 animate-fade-in">
                 <BackBtn/>
                 <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - 補色</h3>
-                <p className="text-sm text-gray-500 px-1">是第幾次補色呢？</p>
-                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="service-btn">{s} <Icon path={Icons.chevronRight}/></button>)}
+                <p className="text-sm text-[#8d6e63] px-1 mb-2">是第幾次補色呢？</p>
+                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn font-bold">{s}</button>)}
             </div>
         );
         
@@ -294,11 +299,11 @@
                 <div className="space-y-3 animate-fade-in">
                     <BackBtn/>
                     <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - {session}</h3>
-                    <p className="text-sm text-gray-500 px-1">距離上次施作多久了？</p>
+                    <p className="text-sm text-[#8d6e63] px-1 mb-2">距離上次施作多久了？</p>
                     {ranges.length > 0 ? ranges.map(r => (
-                        <button key={r.label} onClick={()=>handleTime(r.label)} className="service-btn group">
-                            <span className="font-medium">{r.label}</span>
-                            <span className="font-bold text-[#8d6e63] bg-[#efebe9] px-3 py-1 rounded-lg group-hover:bg-white group-hover:text-[#8d6e63] transition-colors">${r.price}</span>
+                        <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn group">
+                            <span className="font-bold text-lg">{r.label}</span>
+                            <span className="font-bold text-[#8d6e63] bg-[#efebe9] px-3 py-1 rounded-lg group-hover:bg-[#8d6e63] group-hover:text-white transition-all">${r.price}</span>
                         </button>
                     )) : <div className="text-gray-400 text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed">尚無此時段的報價資料</div>}
                 </div>
@@ -394,10 +399,10 @@
         const [msgModal, setMsgModal] = useState(null); 
         const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
         const [editMode, setEditMode] = useState(false); 
+        // Admin Calendar State
         const [calDate, setCalDate] = useState(new Date());
         const [calSelected, setCalSelected] = useState(null);
         
-        // Ref for scrolling
         const bookingRefs = useRef({});
 
         const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], session: TOUCHUP_SESSIONS[0], timeRange: '', price: '', duration: '90' });
@@ -471,7 +476,7 @@
                         </div>
                     </div>
                     
-                    {/* Daily List - Click to Jump */}
+                    {/* Daily List */}
                     {calSelected && (
                         <div className="bg-white p-4 rounded-xl shadow-sm border animate-fade-in">
                             <h3 className="font-bold mb-3 text-[#4e342e] flex items-center gap-2">
@@ -494,9 +499,11 @@
                                             className={`border p-3 rounded-lg text-sm flex justify-between items-center cursor-pointer hover:bg-gray-50 ${b.status==='cancelled'?'opacity-50 bg-gray-50':''}`}>
                                             <div>
                                                 <div className="font-bold text-[#5d4037]">{b.time} - {b.customerName}</div>
-                                                <div className="text-xs text-gray-500">{b.serviceName}</div>
+                                                <div className="text-xs text-gray-500">{b.serviceName} ({b.locationName})</div>
                                             </div>
-                                            <Icon path={Icons.chevronRight} size={16} className="text-gray-300"/>
+                                            <div className={`text-xs px-2 py-1 rounded ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>
+                                                {b.status==='confirmed'?'已確認':b.status==='cancelled'?'取消':'待確認'}
+                                            </div>
                                         </div>
                                     ))
                                 )}
@@ -651,7 +658,7 @@
         return (
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4 z-20">
-                    <h2 className="font-bold">後台管理 (V33)</h2>
+                    <h2 className="font-bold">後台管理 (V35)</h2>
                     <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
                 </div>
                 
@@ -870,20 +877,16 @@
         );
     };
 
-    // --- Main App (V33) ---
+    // --- Main App (V37) ---
     function App() {
       const [user, setUser] = useState(null);
       const [page, setPage] = useState('home'); 
       const [step, setStep] = useState(1);
       const [loc, setLoc] = useState(null);
-      
-      // guests: { id, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }
       const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], time: null, customTime: '', name: '', phone: '', discount: null }]);
-      
       const [date, setDate] = useState(new Date());
       const [info, setInfo] = useState({notes:''});
-      const [lastOrder, setLastOrder] = useState(null);
-
+      const [isTwoPeople, setIsTwoPeople] = useState(false);
       const [services, setServices] = useState([]);
       const [addons, setAddons] = useState([]);
       const [discounts, setDiscounts] = useState([]);
@@ -939,11 +942,9 @@
       
       const addServiceToGuest = (idx, s) => {
           const g = [...guests];
-          if (s.type === '補色') g[idx].services = [s]; // 補色只能單選
+          if (s.type === '補色') g[idx].services = [s]; 
           else {
-             // 如果原本是補色，清空後再加
              if (g[idx].services.length > 0 && g[idx].services[0].type === '補色') g[idx].services = [];
-             // 避免重複
              if(!g[idx].services.find(item=>item.id===s.id)) g[idx].services.push(s);
           }
           setGuests(g);
@@ -975,7 +976,6 @@
                   }
               }
           });
-          
           if (guests.length >= 2) {
              guests.forEach(g => {
                  const isTouchUp = g.services.some(s => s.type === '補色');
@@ -1001,7 +1001,7 @@
                   const orderData = {
                       locationId: loc.id, locationName: loc.name,
                       serviceId: g.services.map(s=>s.id), serviceName: svcNames,
-                      addons: [], // Removed addons support
+                      addons: [], 
                       date: dStr, time: tVal,
                       customerName: g.name, customerPhone: g.phone,
                       notes: info.notes,
@@ -1046,12 +1046,13 @@
                       <div><h1 className="text-4xl font-bold tracking-widest text-[#4e342e] mb-2">AM Studio</h1><p className="text-[#8d6e63] tracking-wider">線上預約系統</p></div>
                       <div className="grid gap-4">
                           {LOCATIONS.map(l => (
-                              <button key={l.id} onClick={()=>{setLoc(l); setPage('booking'); setStep(2);}} className="group bg-white border-2 border-[#e5e7eb] hover:border-[#8d6e63] p-6 rounded-xl flex items-center justify-between transition-all shadow-sm hover:shadow-md">
-                                  <div className="flex items-center gap-4"><div className="w-12 h-12 bg-[#efebe9] rounded-full flex items-center justify-center text-[#5d4037] group-hover:bg-[#8d6e63] group-hover:text-white transition-colors"><Icon path={Icons.map} size={24}/></div><div className="text-left"><h3 className="text-lg font-bold text-[#4e342e]">{l.name}</h3><p className="text-xs text-gray-400">立即預約</p></div></div>
-                                  <div className="text-gray-300 group-hover:text-[#8d6e63]"><Icon path={Icons.chevronRight}/></div>
+                              <button key={l.id} onClick={()=>{setLoc(l); setPage('booking'); setStep(2);}} className="big-card-btn">
+                                  <div className="text-3xl mb-2 text-[#8d6e63]"><Icon path={Icons.map} size={32}/></div>
+                                  <div className="text-lg font-bold text-[#4e342e] mb-1">{l.name}</div>
+                                  <div className="text-sm text-gray-400">點擊開始預約</div>
                               </button>
                           ))}
-                          <button onClick={()=>setPage('check-status')} className="w-full bg-white border border-[#d7ccc8] text-[#8d6e63] p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9]"><Icon path={Icons.search} size={18}/> 查詢預約 / 回報匯款</button>
+                          <button onClick={()=>setPage('check-status')} className="w-full bg-white border border-[#d7ccc8] text-[#8d6e63] p-4 rounded-3xl flex items-center justify-center gap-2 hover:bg-[#efebe9] shadow-sm"><Icon path={Icons.search} size={18}/> 查詢預約 / 回報匯款</button>
                       </div>
                   </div>
               </div>
@@ -1060,7 +1061,6 @@
 
       const depositTotal = guests.length * BANK_INFO.amountPerPerson;
 
-      // Booking Flow
       return (
           <div className="min-h-screen bg-white md:bg-[#f4f1ea] flex flex-col">
               <div className="bg-white p-4 sticky top-0 z-10 border-b flex items-center justify-between shadow-sm">
@@ -1079,11 +1079,10 @@
                                       {i > 0 && <button onClick={()=>removeGuest(i)} className="text-xs text-red-400 border border-red-200 px-2 py-1 rounded"><Icon path={Icons.trash} size={14}/></button>}
                                   </div>
                                   
-                                  {/* Service List - Cards */}
                                   {g.services.length > 0 && (
                                       <div className="space-y-2 mb-4">
                                           {g.services.map(s => (
-                                              <div key={s.id} className="flex justify-between items-center p-4 bg-white rounded-xl border border-[#d7ccc8] shadow-sm">
+                                              <div key={s.id} className="flex justify-between items-center p-4 bg-white rounded-2xl border border-[#d7ccc8] shadow-sm">
                                                   <div>
                                                       <div className="font-bold text-[#4e342e] text-lg">{s.name}</div>
                                                       <div className="text-sm text-gray-500">${s.price}</div>
@@ -1094,50 +1093,45 @@
                                       </div>
                                   )}
 
-                                  {/* Add Service Button - Replaces old "Change" button */}
                                   {showSelector !== i ? (
-                                      <button onClick={()=>setShowSelector(i)} className="w-full py-4 bg-white border-2 border-dashed border-[#8d6e63] text-[#8d6e63] rounded-xl flex items-center justify-center gap-2 hover:bg-[#efebe9] transition-colors font-bold">
-                                          <Icon path={Icons.plus}/> {g.services.length>0 ? '再加一項服務' : '選擇服務項目'}
+                                      <button onClick={()=>setShowSelector(i)} className="w-full py-4 bg-white border-2 border-dashed border-[#8d6e63] text-[#8d6e63] rounded-2xl flex items-center justify-center gap-2 hover:bg-[#efebe9] transition-colors font-bold shadow-sm">
+                                          <Icon path={Icons.plus}/> {g.services.length>0 ? '再加一項服務' : '新增服務項目'}
                                       </button>
                                   ) : (
                                       <div className="mt-2">
-                                          <ServiceSelector 
-                                              services={services} 
-                                              onSelect={(s)=>{ addServiceToGuest(i, s); setShowSelector(null); }}
-                                              onCancel={()=>setShowSelector(null)} 
-                                          />
+                                          <ServiceSelector services={services} onSelect={(s)=>{ addServiceToGuest(i, s); setShowSelector(null); }} onCancel={()=>setShowSelector(null)} />
                                       </div>
                                   )}
                                   
                                   <div className="mt-6">
-                                      <label className="text-xs font-bold text-gray-500 block mb-1 flex items-center gap-1"><Icon path={Icons.tag} size={14}/> 優惠身份</label>
-                                      <select className="w-full p-3 rounded-lg border bg-white text-sm focus:ring-2 focus:ring-[#8d6e63] outline-none" value={g.discount ? g.discount.id : ''} onChange={(e) => { const selected = discounts.find(d => d.id === e.target.value); updateGuest(i, 'discount', selected || null); }}>
+                                      <label className="text-xs font-bold text-gray-500 block mb-2 flex items-center gap-1"><Icon path={Icons.tag} size={14}/> 優惠身份</label>
+                                      <select className="w-full p-3 rounded-xl border bg-white text-sm focus:ring-2 focus:ring-[#8d6e63] outline-none shadow-sm" value={g.discount ? g.discount.id : ''} onChange={(e) => { const selected = discounts.find(d => d.id === e.target.value); updateGuest(i, 'discount', selected || null); }}>
                                           <option value="">無 (保持原價)</option>
                                           {discounts.filter(d => { const isTouchUp = g.services.some(s => s.type === '補色'); if (isTouchUp) return d.name.includes('壽星'); return true; }).map(d => (<option key={d.id} value={d.id}>{d.name} (折抵 ${d.amount})</option>))}
                                       </select>
-                                      {g.services.some(s=>s.type==='補色') && <p className="text-[10px] text-red-400 mt-1">※ 補色項目僅適用壽星優惠，恕不適用其他折扣</p>}
+                                      {g.services.some(s=>s.type==='補色') && <p className="text-[10px] text-red-400 mt-2 px-1">※ 補色項目僅適用壽星優惠，恕不適用其他折扣</p>}
                                   </div>
                               </div>
                           ))}
                           
-                          <button onClick={addGuest} className="w-full py-3 bg-[#8d6e63] text-white rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-[#795548]">
+                          <button onClick={addGuest} className="w-full py-3 bg-[#8d6e63] text-white rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-[#795548] font-bold transition-all transform hover:scale-[1.02]">
                               <Icon path={Icons.plus}/> 新增一位同伴 ({guests.length >= 1 ? '多人同行' : '兩人同行'})
                           </button>
 
-                          <div className="bg-[#5d4037] text-white p-4 rounded-xl flex justify-between items-center shadow-lg sticky bottom-4 border-t-4 border-[#8d6e63]">
+                          <div className="bg-[#5d4037] text-white p-5 rounded-2xl flex justify-between items-center shadow-xl sticky bottom-4 border-t-4 border-[#8d6e63]">
                               <div className="text-sm">
                                   總計人數：{guests.length} 位
-                                  {guests.length >= 2 && <span className="block text-xs opacity-80">(含兩人同行優惠)</span>}
+                                  {guests.length >= 2 && <span className="block text-xs opacity-80 mt-1">(已含兩人同行優惠)</span>}
                               </div>
-                              <div className="font-bold text-xl">${calculateTotal()}</div>
+                              <div className="font-bold text-2xl">${calculateTotal()}</div>
                           </div>
                       </div>
                   )}
 
-                  {/* Steps 3-6 Logic same as V29 */}
+                  {/* Step 3: Date & Time */}
                   {step === 3 && (
                       <div className="space-y-6 fade-in">
-                          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                               <div className="flex justify-between items-center mb-4">
                                   <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1, 1))} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><Icon path={Icons.chevronLeft}/></button>
                                   <span className="font-bold text-lg">{date.getFullYear()}年 {date.getMonth()+1}月</span>
@@ -1163,15 +1157,15 @@
                                       const myTime = g.time;
                                       const taken = booked.concat(guests.filter((_, i)=>i!==idx).map(og=>og.time).filter(t=>t));
                                       return (
-                                          <div key={g.id} className="bg-white p-4 rounded-xl border shadow-sm">
-                                              <div className="font-bold text-[#5d4037] mb-2">第 {idx+1} 位時段</div>
+                                          <div key={g.id} className="bg-white p-5 rounded-2xl border shadow-sm">
+                                              <div className="font-bold text-[#5d4037] mb-3">第 {idx+1} 位時段</div>
                                               <div className="grid grid-cols-3 gap-2">
                                                   {getSlots(date).map(t => (
-                                                      <button key={t} disabled={taken.includes(t)} onClick={()=>{ updateGuest(idx, 'time', t); updateGuest(idx, 'customTime', ''); }} className={`py-2 rounded border text-xs ${myTime===t?'bg-[#8d6e63] text-white border-[#8d6e63]':taken.includes(t)?'bg-gray-100 text-gray-300 cursor-not-allowed':'bg-white'}`}>{t}</button>
+                                                      <button key={t} disabled={taken.includes(t)} onClick={()=>{ updateGuest(idx, 'time', t); updateGuest(idx, 'customTime', ''); }} className={`py-2 rounded-lg border text-xs font-bold transition-all ${myTime===t?'bg-[#8d6e63] text-white border-[#8d6e63] shadow-md':taken.includes(t)?'bg-gray-100 text-gray-300 cursor-not-allowed':'bg-white hover:border-[#8d6e63]'}`}>{t}</button>
                                                   ))}
                                               </div>
                                               {myTime === '微調時段申請' && (
-                                                  <input type="time" className="mt-2 w-full border p-2 rounded text-sm" value={g.customTime} onChange={e=>updateGuest(idx, 'customTime', e.target.value)} />
+                                                  <input type="time" className="mt-3 w-full border p-3 rounded-xl text-lg text-center bg-[#fdfbf7]" value={g.customTime} onChange={e=>updateGuest(idx, 'customTime', e.target.value)} />
                                               )}
                                           </div>
                                       )
@@ -1185,45 +1179,50 @@
                       <div className="space-y-6 fade-in">
                           <div className="space-y-4">
                               {guests.map((g, i) => (
-                                  <div key={g.id} className="bg-white p-4 rounded-lg border shadow-sm">
-                                      <h3 className="text-sm font-bold text-[#5d4037] mb-3">第 {i+1} 位顧客資料</h3>
-                                      <div className="space-y-3">
-                                          <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" placeholder="姓名" value={g.name} onChange={e=>updateGuest(i, 'name', e.target.value)} />
-                                          <input className="w-full p-2 bg-gray-50 rounded border focus:border-[#8d6e63] outline-none" type="tel" placeholder="電話" value={g.phone} onChange={e=>updateGuest(i, 'phone', e.target.value)} />
+                                  <div key={g.id} className="bg-white p-5 rounded-2xl border shadow-sm">
+                                      <h3 className="text-sm font-bold text-[#5d4037] mb-4 border-b pb-2">第 {i+1} 位顧客資料</h3>
+                                      <div className="space-y-4">
+                                          <input className="w-full p-3 bg-[#fdfbf7] rounded-xl border border-transparent focus:border-[#8d6e63] outline-none transition-all" placeholder="姓名" value={g.name} onChange={e=>updateGuest(i, 'name', e.target.value)} />
+                                          <input className="w-full p-3 bg-[#fdfbf7] rounded-xl border border-transparent focus:border-[#8d6e63] outline-none transition-all" type="tel" placeholder="電話" value={g.phone} onChange={e=>updateGuest(i, 'phone', e.target.value)} />
                                       </div>
                                   </div>
                               ))}
-                              <div><label className="block text-xs font-bold text-gray-500 mb-1 ml-1">其他備註</label><textarea className="w-full p-3 bg-gray-50 rounded-lg border-none focus:ring-2 focus:ring-[#8d6e63] h-24 resize-none" placeholder="需卸甲、皮膚敏感..." value={info.notes} onChange={e=>setInfo({...info,notes:e.target.value})} /></div>
+                              <div><label className="block text-xs font-bold text-gray-500 mb-2 ml-1">其他備註</label><textarea className="w-full p-4 bg-white rounded-2xl border border-gray-200 focus:border-[#8d6e63] h-24 resize-none outline-none transition-all" placeholder="需卸甲、皮膚敏感..." value={info.notes} onChange={e=>setInfo({...info,notes:e.target.value})} /></div>
                           </div>
-                          <div className="flex justify-between text-sm border-t pt-2"><span className="text-gray-500">總金額</span><span className="font-bold text-[#8d6e63]">${calculateTotal()}</span></div>
+                          <div className="flex justify-between text-sm border-t pt-4 px-2"><span className="text-gray-500">總金額</span><span className="font-bold text-[#8d6e63] text-xl">${calculateTotal()}</span></div>
                       </div>
                   )}
 
                   {step === 5 && (
                       <div className="space-y-6 fade-in">
                           <h2 className="text-xl font-bold text-[#4e342e]">訂金說明</h2>
-                          <div className="bg-orange-50 border border-orange-200 p-5 rounded-xl text-sm leading-relaxed text-[#5d4037]">
-                              <p className="mb-4 font-bold">總人數：{guests.length} 位</p>
-                              <div className="bg-white p-4 rounded-lg border border-orange-100 mb-4">
-                                  <p>銀行：<span className="font-bold">{BANK_INFO.code}</span></p>
-                                  <p>帳號：<span className="font-bold text-lg">{BANK_INFO.account}</span></p>
-                                  <p>戶名：{BANK_INFO.name}</p>
-                                  <p className="mt-2 text-red-600 font-bold">總訂金：${depositTotal}</p>
+                          <div className="bg-orange-50 border border-orange-200 p-6 rounded-2xl text-sm leading-relaxed text-[#5d4037]">
+                              <p className="mb-4 font-bold text-base">總人數：{guests.length} 位</p>
+                              <div className="bg-white p-5 rounded-xl border border-orange-100 mb-4 shadow-sm">
+                                  <p className="mb-1 text-gray-500 text-xs">匯款資訊</p>
+                                  <p className="font-bold text-lg mb-1">{BANK_INFO.code}</p>
+                                  <p className="font-bold text-2xl tracking-widest mb-1">{BANK_INFO.account}</p>
+                                  <p className="text-sm">{BANK_INFO.name}</p>
+                                  <div className="mt-4 pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
+                                      <span className="font-bold">應付訂金</span>
+                                      <span className="text-red-600 font-bold text-xl">${depositTotal}</span>
+                                  </div>
                               </div>
+                              <p className="text-xs text-gray-500 mt-4">※ 請於預約送出後 24 小時內完成匯款，並使用首頁的「查詢/回報」功能上傳帳號後五碼。</p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3 p-2">
                               <input type="checkbox" id="agree" className="w-5 h-5 accent-[#8d6e63]"/>
-                              <label htmlFor="agree" className="text-sm">我已閱讀並同意支付訂金規則</label>
+                              <label htmlFor="agree" className="text-sm font-bold text-[#5d4037]">我已閱讀並同意支付訂金規則</label>
                           </div>
                       </div>
                   )}
 
                   {step === 6 && (
                       <div className="text-center pt-10 fade-in">
-                          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600"><Icon path={Icons.check} size={40}/></div>
-                          <h2 className="text-2xl font-bold mb-2 text-[#4e342e]">預約送出成功！</h2>
-                          <p className="text-gray-500 text-sm mb-8">請記得匯款並回報。</p>
-                          <button onClick={reset} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow-lg shadow-[#8d6e63]/30">返回首頁</button>
+                          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 shadow-sm"><Icon path={Icons.check} size={48}/></div>
+                          <h2 className="text-3xl font-bold mb-3 text-[#4e342e]">預約送出成功！</h2>
+                          <p className="text-gray-500 mb-8">請記得匯款並回報。</p>
+                          <button onClick={reset} className="w-full bg-[#8d6e63] text-white py-4 rounded-2xl shadow-lg shadow-[#8d6e63]/30 font-bold text-lg hover:bg-[#795548] transition-all">返回首頁</button>
                       </div>
                   )}
               </div>
@@ -1236,7 +1235,7 @@
                           if(step===4 && guests.some(g=>!g.name || !g.phone)) return alert('請填寫所有資料');
                           if(step===5 && !document.getElementById('agree').checked) return alert('請勾選同意');
                           if(step===5) handleSubmit(); else setStep(s=>s+1);
-                      }} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-[#8d6e63]/30 active:scale-[0.98] transition-transform">
+                      }} className="w-full bg-[#8d6e63] text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-[#8d6e63]/30 active:scale-[0.98] transition-transform">
                           {step===5 ? '送出預約' : '下一步'}
                       </button>
                   </div>
