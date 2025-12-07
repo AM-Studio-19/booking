@@ -11,73 +11,150 @@
     /* 全域設定 */
     body { 
       font-family: 'Noto Serif TC', serif; 
-      background-color: #FDFCF8; 
-      color: #4A4A4A; 
+      background-color: #faf9f6; /* 極淺的米色背景 */
+      color: #5d4037; 
       -webkit-tap-highlight-color: transparent;
     }
     
-    /* 隱藏捲軸但保留功能 */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* V38: 現代化卡片與按鈕 */
-    .app-card {
-      @apply bg-white rounded-3xl p-5 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-[#f0f0f0];
+    /* 按鈕樣式優化 */
+    .option-btn { 
+      @apply w-full p-4 rounded-2xl mb-3 flex justify-between items-center transition-all duration-200 text-lg font-medium shadow-sm relative overflow-hidden;
+      background-color: #ffffff;      
+      color: #5d4037;                
+      border: 1px solid #e7e0da;     
+      min-height: 60px;              
+    }
+    .option-btn:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(141, 110, 99, 0.08); 
+      border-color: #d7ccc8;
+    }
+    .option-btn.active { 
+      background-color: #efebe9;     
+      color: #3e2723;                
+      border: 2px solid #8d6e63;     
+      font-weight: bold;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .option-btn:active { transform: scale(0.98); }
+
+    /* 大卡片按鈕 */
+    .big-card-btn { 
+      @apply flex flex-col items-center justify-center p-6 rounded-3xl transition-all duration-300 shadow-sm aspect-square cursor-pointer border;
+      background-color: #ffffff;
+      border: 1px solid #e7e0da;
+      color: #5d4037;
+    }
+    .big-card-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(141, 110, 99, 0.12);
+      border-color: #d7ccc8;
+    }
+    .big-card-btn:active {
+      transform: scale(0.98);
+      background-color: #faf7f5;
     }
 
-    .service-item {
-      @apply relative flex items-center justify-between p-4 rounded-2xl border border-transparent bg-[#FAFAFA] transition-all duration-300 cursor-pointer mb-3;
-    }
-    .service-item:hover { @apply bg-[#F5F5F5]; }
-    .service-item.active { 
-      @apply bg-white border-[#C4A48C] shadow-[0_0_0_1px_#C4A48C] bg-[#FFFBF9];
+    /* 虛線按鈕 */
+    .dashed-btn {
+      @apply w-full py-4 rounded-xl border-2 border-dashed border-[#8d6e63] text-[#8d6e63] font-bold text-lg flex items-center justify-center gap-2 cursor-pointer transition-all bg-transparent mb-6 hover:bg-[#fffaf9];
     }
 
-    .pill-tab {
-      @apply px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap;
-    }
-    .pill-tab.active { @apply bg-[#C4A48C] text-white shadow-md transform scale-105; }
-    .pill-tab.inactive { @apply bg-[#F0F0F0] text-[#999]; }
-
-    .time-chip {
-      @apply py-3 rounded-xl text-center text-sm font-bold border border-transparent bg-[#FAFAFA] transition-all duration-200;
-    }
-    .time-chip.active { @apply bg-[#C4A48C] text-white shadow-md; }
-    .time-chip.disabled { @apply opacity-30 cursor-not-allowed bg-[#EEEEEE] text-[#AAAAAA]; }
-
-    /* 底部懸浮按鈕 */
-    .sticky-footer {
-      @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40;
+    /* 實心按鈕 */
+    .solid-btn {
+      @apply w-full py-3 bg-[#8d6e63] text-white rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-[#795548] font-bold transition-all transform hover:scale-[1.02];
     }
 
-    /* Modal 動畫 */
-    .modal-backdrop { @apply fixed inset-0 bg-black/40 z-50 flex items-end justify-center backdrop-blur-[2px] transition-opacity; }
-    .bottom-sheet { @apply bg-white w-full max-w-lg rounded-t-3xl p-6 transform transition-transform duration-300 ease-out; }
+    /* 卡片容器 */
+    .guest-block { 
+        @apply bg-white p-5 rounded-3xl shadow-sm border border-[#f0f0f0] mb-6 relative;
+    }
     
     .spinner {
       border: 3px solid #f3f3f3; border-top: 3px solid #C4A48C; border-radius: 50%;
       width: 24px; height: 24px; animation: spin 1s linear infinite;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .date-cell { @apply aspect-square flex items-center justify-center rounded-lg text-sm cursor-pointer border border-transparent transition-all; }
+    .date-cell:hover { @apply bg-gray-50; }
+    .date-cell.selected { @apply bg-[#8d6e63] text-white font-bold shadow-md; }
+    .date-cell.has-rule { @apply border-orange-300 bg-orange-50 text-orange-700; }
+    .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin: 0 1px; }
+    .dot.green { background-color: #10b981; }
+    .dot.yellow { background-color: #f59e0b; }
+    
+    .status-tab { @apply px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors border; }
+    .status-tab.active { @apply bg-[#8d6e63] text-white border-[#8d6e63]; }
+    .status-tab.inactive { @apply bg-white text-gray-500 border-gray-200 hover:bg-gray-50; }
+
+    .time-chip {
+      @apply py-3 rounded-xl text-center text-sm font-bold border border-transparent bg-white shadow-sm transition-all duration-200;
+    }
+    .time-chip.active { @apply bg-[#8d6e63] text-white shadow-md transform scale-105; }
+    .time-chip.disabled { @apply opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 shadow-none; }
+
+    .location-btn {
+      @apply w-full p-6 bg-white rounded-3xl border border-[#e7e0da] shadow-sm flex flex-col items-center justify-center gap-3 transition-all duration-200;
+    }
+    .location-btn:active { @apply transform scale-[0.98] bg-[#faf9f8] border-[#d7ccc8]; }
+
+    .sticky-footer {
+      @apply fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 p-4 pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40 flex items-center gap-4;
+    }
+
+    .modal-backdrop { @apply fixed inset-0 bg-black/40 z-50 flex items-end justify-center backdrop-blur-[2px] transition-opacity; }
+    .bottom-sheet { @apply bg-white w-full max-w-md rounded-t-3xl p-6 pb-10 transform transition-transform duration-300 ease-out shadow-2xl; }
   </style>
 
+  <!-- React & Babel -->
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   
+  <!-- Firebase -->
   <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
+  <!-- LIFF -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8d6e63; background-color: #faf9f6;">
+      <div class="spinner"></div>
+      <p id="loading-text" class="mt-4 font-bold tracking-widest text-sm">AM STUDIO</p>
+    </div>
+  </div>
+
+  <div id="error-box" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; padding:20px; text-align:center;">
+    <div style="max-width:500px; margin:50px auto; border:2px solid #ef4444; padding:20px; background:#fff; border-radius:8px;">
+        <h2 style="color:#ef4444; font-size:24px; margin-bottom:10px;">⚠️ 發生錯誤</h2>
+        <p id="error-msg" style="color:#333; margin-bottom:20px; word-break:break-all;"></p>
+        <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#8d6e63; color:white; border:none; border-radius:4px;">重新整理</button>
+    </div>
+  </div>
+
+  <script>
+    window.onerror = function(msg, url, line) {
+      document.getElementById('root').style.display = 'none';
+      document.getElementById('error-box').style.display = 'block';
+      document.getElementById('error-msg').innerHTML = `<strong>原因：</strong>${msg}<br><br><small>(${url}:${line})</small>`;
+      return false;
+    };
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
     
-    // --- Config & Data ---
+    // --- Config ---
     const firebaseConfig = {
       apiKey: "AIzaSyCzCXFgd7VrWHyHrM3GILQ2JHzQaa7yoIw",
       authDomain: "amstudio-booking.firebaseapp.com",
@@ -92,9 +169,11 @@
     
     const BANK_INFO = { code: '822', account: '1234-5678-9012', amountPerPerson: 1000 };
     const LOCATIONS = [{ id: 'tainan', name: '台南工作室' }, { id: 'kaohsiung', name: '高雄工作室' }];
-    const CATEGORIES = ["霧眉", "霧唇"]; 
+    const MAIN_CATS = ["霧眉", "霧唇"]; 
+    const SUB_CATS = ["首次", "補色"];
+    const TOUCHUP_SESSIONS = ["第一次回補", "第二次以上"];
     const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
-
+    
     // Init Firebase
     let db, auth;
     try {
@@ -103,7 +182,7 @@
         auth = firebase.auth();
     } catch (e) { console.error(e); }
 
-    // Icons
+    // --- Icons ---
     const Icon = ({ name, size=20, className="" }) => {
         const paths = {
             check: <polyline points="20 6 9 17 4 12"/>,
@@ -116,14 +195,26 @@
             users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
             settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
             close: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+            plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
+            trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+            search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+            msg: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
             tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
-        };
-        return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{paths[name]}</svg>;
+            up: <polyline points="18 15 12 9 6 15"/>,
+            down: <polyline points="6 9 12 15 18 9"/>,
+            back: <path d="M19 12H5m7 7l-7-7 7-7"/>,
+            cross: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
     };
+    
+    const DEFAULT_TEMPLATES = [
+        { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
+        { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
+        { title: '已收訂金', text: '您好，已收到您的訂金匯款，預約正式保留。感謝您！' },
+        { title: '預約取消', text: '您好，您的預約已取消。若有需要請再次預約，謝謝。' }
+    ];
 
     // --- Sub-components ---
-    
-    // Bottom Sheet Modal for Selection
+
     const SelectionSheet = ({ title, isOpen, onClose, children }) => {
         if (!isOpen) return null;
         return (
@@ -139,435 +230,941 @@
         );
     };
 
-    const GuestSection = ({ index, guest, services, addons, discounts, onUpdate, onRemove, showRemove }) => {
-        const [activeCat, setActiveCat] = useState('霧眉');
-        const [showTouchupModal, setShowTouchupModal] = useState(false);
-        const [modalStage, setModalStage] = useState('session'); // session -> time
-        const [touchupSession, setTouchupSession] = useState('');
+    const ServiceSelector = ({ services, onSelect, onCancel }) => {
+        const [stage, setStage] = useState('main'); 
+        const [mainCat, setMainCat] = useState(null);
+        const [subCat, setSubCat] = useState(null);
+        const [session, setSession] = useState(null);
         const [isDarkLip, setIsDarkLip] = useState(false);
 
-        // Filter services
-        const currentCatServices = useMemo(() => services.filter(s => s.category === activeCat), [services, activeCat]);
-        const firstTimeSvc = currentCatServices.find(s => s.type === '首次');
+        const sortedServices = useMemo(() => {
+            return [...services].sort((a, b) => (a.order || 999) - (b.order || 999));
+        }, [services]);
+
+        const handleMain = (c) => { setMainCat(c); setStage('sub'); };
+        const handleSub = (t) => { 
+            setSubCat(t); 
+            if(t === '補色') setStage('session');
+            else setStage('confirm');
+        };
+        const handleSession = (s) => { setSession(s); setStage('time'); };
         
-        // Find existing service for this category in guest
-        const selectedSvc = guest.services.find(s => s.category === activeCat);
-
-        const handleSelectFirst = () => {
-            if(!firstTimeSvc) return;
-            let finalSvc = { ...firstTimeSvc };
-            // 霧唇特殊邏輯
-            if (activeCat === '霧唇' && isDarkLip) {
-                finalSvc.name += ' (含烏唇淡色)';
-                finalSvc.price += 1300;
-                finalSvc.isDarkLip = true;
-            }
-            onUpdate('setService', finalSvc);
+        const handleTime = (timeRange) => {
+            const target = sortedServices.find(s => 
+                s.category === mainCat && 
+                s.type === subCat && 
+                s.session === session && 
+                s.timeRange === timeRange
+            );
+            if(target) onSelect(target); else alert('查無此時段資料');
+        };
+        const handleConfirmFirst = () => {
+             const target = sortedServices.find(s => s.category === mainCat && s.type === subCat);
+             if(target) {
+                 let finalService = { ...target };
+                 if (mainCat === '霧唇' && isDarkLip) {
+                     finalService.name += ' (含烏唇淡色)';
+                     finalService.price += 1300;
+                     finalService.isDarkLip = true; 
+                 }
+                 onSelect(finalService);
+             } else { alert('查無資料'); }
         };
 
-        const handleTouchupSelect = (timeRange) => {
-            const target = currentCatServices.find(s => s.type === '補色' && s.session === touchupSession && s.timeRange === timeRange);
-            if(target) {
-                onUpdate('setService', target);
-                setShowTouchupModal(false);
-            } else {
-                alert('查無此時段資料');
-            }
-        };
+        const BackBtn = () => (
+            <button onClick={()=>{
+                if(stage==='confirm') setStage('sub');
+                else if(stage==='time') setStage('session');
+                else if(stage==='session') setStage('sub');
+                else if(stage==='sub') setStage('main');
+                else if(stage==='main') onCancel();
+            }} className="mb-4 text-base text-[#8d6e63] flex items-center gap-2 font-bold px-4 py-2 rounded-lg hover:bg-white bg-[#f4f1ec] border border-[#e7e0da] shadow-sm transition-all hover:translate-y-[-1px]">
+                <Icon name="chevronLeft" size={20}/> {stage==='main' ? '取消' : '返回上一步'}
+            </button>
+        );
 
-        // Available time ranges for touchup
-        const touchupRanges = useMemo(() => {
-            return currentCatServices
-                .filter(s => s.type === '補色' && s.session === touchupSession)
-                .map(s => ({ label: s.timeRange, price: s.price }))
-                .filter((v,i,a) => a.findIndex(t => t.label === v.label) === i);
-        }, [currentCatServices, touchupSession]);
-
-        return (
-            <div className="guest-block">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2">
-                        <span className="bg-[#4e342e] text-white text-xs px-2 py-1 rounded">第 {index + 1} 位</span>
-                        {showRemove && <button onClick={onRemove} className="text-red-400 text-xs underline">移除</button>}
-                    </div>
+        if(stage === 'main') return (
+            <div className="space-y-4 animate-fade-in">
+                <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm text-[#8d6e63] font-bold tracking-wide">請選擇服務項目：</p>
+                    <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 p-2">取消</button>
                 </div>
-
-                {/* Category Tabs */}
-                <div className="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
-                    {CATEGORIES.map(c => (
-                        <button key={c} onClick={() => setActiveCat(c)} className={`pill-tab ${activeCat===c ? 'active' : 'inactive'}`}>
-                            {c}
+                <div className="grid gap-4">
+                    {MAIN_CATS.map(c => (
+                        <button key={c} onClick={()=>handleMain(c)} className="big-card-btn">
+                            <div className="text-3xl mb-2">{c.includes('眉') ? '🤨' : '👄'}</div>
+                            <div className="font-bold text-lg text-[#5d4037]">{c}</div>
                         </button>
                     ))}
                 </div>
-
-                {/* Service Options (Cards) */}
-                <div className="grid gap-3">
-                    {/* 1. 首次 Card */}
-                    <div onClick={handleSelectFirst} 
-                         className={`service-item ${selectedSvc?.type === '首次' && selectedSvc.category === activeCat ? 'active' : ''}`}>
-                        <div>
-                            <div className="font-bold text-[#5d4037]">首次操作</div>
-                            <div className="text-xs text-gray-500 mt-1">${firstTimeSvc?.price || 0}</div>
-                        </div>
-                        {selectedSvc?.type === '首次' && selectedSvc.category === activeCat && <div className="text-[#C4A48C]"><Icon name="check"/></div>}
-                    </div>
-
-                    {/* 霧唇 - 烏唇選項 (Inline) */}
-                    {activeCat === '霧唇' && (
-                        <div className="mb-3 px-2 flex items-center gap-2" onClick={e=>e.stopPropagation()}>
-                            <input type="checkbox" id={`darklip-${index}`} checked={isDarkLip} onChange={e=>setIsDarkLip(e.target.checked)} className="accent-[#C4A48C] w-4 h-4"/>
-                            <label htmlFor={`darklip-${index}`} className="text-xs text-gray-600 cursor-pointer">需烏唇/淡色處理 (+$1300)</label>
+            </div>
+        );
+        
+        if(stage === 'sub') return (
+            <div className="space-y-3 animate-fade-in">
+                <BackBtn/>
+                <h3 className="font-bold text-xl text-[#4e342e] mb-2 px-1">{mainCat}</h3>
+                <p className="text-sm text-[#8d6e63] px-1 mb-2">請選擇類型：</p>
+                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn">{t} <Icon name="chevronRight"/></button>)}
+            </div>
+        );
+        
+        if(stage === 'confirm') {
+            const baseSvc = sortedServices.find(s => s.category === mainCat && s.type === subCat);
+            const basePrice = baseSvc ? baseSvc.price : 0;
+            return (
+                <div className="animate-fade-in">
+                    <BackBtn/>
+                    <h3 className="font-bold mb-4 text-lg text-[#4e342e] px-1">{mainCat} - {subCat}</h3>
+                    {mainCat === '霧唇' && subCat === '首次' && (
+                        <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-2xl shadow-sm cursor-pointer hover:bg-[#fff8f6] transition-colors" onClick={()=>setIsDarkLip(!isDarkLip)}>
+                            <label className="flex items-center gap-4 cursor-pointer pointer-events-none">
+                                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${isDarkLip?'bg-[#8d6e63] border-[#8d6e63]':'bg-white border-gray-400'}`}>
+                                    {isDarkLip && <Icon name="check" className="text-white" size={16}/>}
+                                </div>
+                                <div>
+                                    <div className="font-bold text-[#5d4037] text-lg">👄 需要烏唇/淡色處理？</div>
+                                    <div className="text-sm text-gray-500 mt-1">若唇色較深或暗沈，需先進行淡色處理 (+$1300)</div>
+                                </div>
+                            </label>
                         </div>
                     )}
-
-                    {/* 2. 補色 Card */}
-                    <div onClick={() => { setModalStage('session'); setShowTouchupModal(true); }} 
-                         className={`service-item ${selectedSvc?.type === '補色' && selectedSvc.category === activeCat ? 'active' : ''}`}>
-                        <div>
-                            <div className="font-bold text-[#5d4037]">補色</div>
-                            <div className="text-xs text-gray-500 mt-1">{selectedSvc?.type === '補色' && selectedSvc.category === activeCat ? selectedSvc.timeRange : '選擇時段...'}</div>
+                    <div className="mb-6 text-center p-6 bg-[#fff8f6] rounded-2xl border border-[#e7e0da]">
+                        <div className="text-sm text-gray-500 mb-1">預估金額</div>
+                        <div className="text-3xl font-bold text-[#8d6e63]">
+                            ${isDarkLip ? basePrice + 1300 : basePrice}
                         </div>
-                        {selectedSvc?.type === '補色' && selectedSvc.category === activeCat ? <div className="text-[#C4A48C]"><Icon name="check"/></div> : <Icon name="chevronRight" className="text-gray-300"/>}
                     </div>
+                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl shadow-lg font-bold text-lg hover:bg-[#795548] active:scale-[0.98] transition-all">確認選擇此項目</button>
+                </div>
+            )
+        }
+        
+        if(stage === 'session') return (
+            <div className="space-y-3 animate-fade-in text-center">
+                <BackBtn/>
+                <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - 補色</h3>
+                <p className="text-sm text-[#8d6e63] px-1 mb-2">是第幾次補色呢？</p>
+                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn">{s} <Icon name="chevronRight"/></button>)}
+            </div>
+        );
+        
+        if(stage === 'time') {
+            const ranges = sortedServices
+                .filter(s => s.category === mainCat && s.type === '補色' && s.session === session)
+                .map(s => ({ label: s.timeRange, price: s.price }))
+                .filter((v,i,a) => a.findIndex(t => t.label === v.label) === i);
+            
+            return (
+                <div className="space-y-3 animate-fade-in text-center">
+                    <BackBtn/>
+                    <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - {session}</h3>
+                    <p className="text-sm text-[#8d6e63] px-1 mb-2">距離上次施作多久了？</p>
+                    {ranges.length > 0 ? ranges.map(r => (
+                        <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn group">
+                            <span className="font-medium text-lg">{r.label}</span>
+                            <span className="font-bold text-[#8d6e63] bg-[#fff8f6] px-3 py-1 rounded-lg border border-[#e7e0da] group-hover:bg-[#8d6e63] group-hover:text-white transition-all">${r.price}</span>
+                        </button>
+                    )) : <div className="text-gray-400 text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed">尚無此時段的報價資料</div>}
+                </div>
+            );
+        }
+    };
+
+    // --- GuestSection (Restored) ---
+    const GuestSection = ({ index, guest, services, addons, discounts, onUpdate, onRemove, showRemove }) => {
+        const [showSelector, setShowSelector] = useState(false);
+        const toggleAddon = (ad) => {
+            const has = guest.addons.find(a=>a.id===ad.id);
+            const newAdds = has ? guest.addons.filter(a=>a.id!==ad.id) : [...guest.addons, ad];
+            onUpdate('addons', newAdds);
+        };
+        const removeService = (sId) => {
+            const newSvcs = guest.services.filter(s => s.id !== sId);
+            onUpdate('services', newSvcs);
+        };
+
+        return (
+            <div className="guest-block">
+                <div className="flex justify-between items-center mb-6">
+                    <span className="bg-[#4e342e] text-white text-sm px-4 py-1 rounded-full font-bold">第 {index + 1} 位</span>
+                    {showRemove && <button onClick={onRemove} className="text-red-400 p-2"><Icon name="trash" size={20}/></button>}
                 </div>
 
-                {/* Discount Select */}
-                <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
-                    <label className="text-xs font-bold text-[#8d6e63] mb-1 block">優惠身份</label>
-                    <select className="w-full bg-[#FAFAFA] border border-gray-200 rounded-lg p-2 text-sm outline-none"
+                {guest.services.length > 0 && (
+                    <div className="space-y-3 mb-6">
+                        {guest.services.map(s => (
+                            <div key={s.id} className="bg-white p-5 rounded-2xl border border-[#d7ccc8] shadow-sm flex justify-between items-center relative overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#8d6e63]"></div>
+                                <div className="pl-2">
+                                    <div className="font-bold text-[#4e342e] text-lg mb-1">{s.name}</div>
+                                    <div className="text-sm text-gray-500 font-bold">${s.price}</div>
+                                </div>
+                                <button onClick={()=>removeService(s.id)} className="text-red-400 p-3 bg-[#faf9f6] rounded-full"><Icon name="trash" size={18}/></button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* V38: 虛線框大按鈕 */}
+                <button onClick={()=>setShowSelector(true)} className="dashed-btn">
+                    <Icon name="plus"/> {guest.services.length > 0 ? '再加一項服務' : '選擇服務項目'}
+                </button>
+                
+                {/* Selector Modal */}
+                <SelectionSheet title="選擇服務項目" isOpen={showSelector} onClose={() => setShowSelector(false)}>
+                    <ServiceSelector 
+                        services={services} 
+                        onSelect={(s) => { 
+                            let newSvcs = [...guest.services];
+                            if(s.type === '補色') newSvcs = [s];
+                            else {
+                                if(newSvcs.length > 0 && newSvcs[0].type === '補色') newSvcs = [];
+                                if(!newSvcs.find(item=>item.id===s.id)) newSvcs.push(s);
+                            }
+                            onUpdate('services', newSvcs);
+                            setShowSelector(false);
+                        }} 
+                        onCancel={()=>setShowSelector(false)} 
+                    />
+                </SelectionSheet>
+
+                {addons.length > 0 && (
+                    <div className="mb-6">
+                         <label className="text-sm font-bold text-[#8d6e63] mb-3 block">加購項目 (可複選)</label>
+                         <div className="grid grid-cols-2 gap-3">
+                             {addons.map(ad => {
+                                 const isChecked = guest.addons.some(a => a.id === ad.id);
+                                 return (
+                                     <button key={ad.id} onClick={() => toggleAddon(ad)} className={`p-4 rounded-2xl border text-sm text-center transition-all ${isChecked ? 'bg-[#8d6e63] text-white border-[#8d6e63] font-bold shadow-md' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                         <div className="text-lg mb-1">{ad.name}</div>
+                                         <div className="text-xs opacity-80">{ad.price>0?'+':''}{ad.price}</div>
+                                     </button>
+                                 );
+                             })}
+                         </div>
+                    </div>
+                )}
+                
+                <div>
+                    <label className="text-sm font-bold text-[#8d6e63] block mb-2 flex items-center gap-2"><Icon name="tag" size={16}/> 優惠身份</label>
+                    <select className="w-full p-4 rounded-xl border border-gray-200 bg-white text-base focus:ring-1 focus:ring-[#8d6e63] outline-none shadow-sm"
                         value={guest.discount?.id || ''}
                         onChange={e => onUpdate('discount', e.target.value)}
                     >
                         <option value="">無 (原價)</option>
                         {discounts.filter(d => {
-                            // 嚴格過濾：若有補色，只留壽星
                             const hasTouchup = guest.services.some(s => s.type === '補色');
                             return hasTouchup ? d.name.includes('壽星') : true;
                         }).map(d => <option key={d.id} value={d.id}>{d.name} (-${d.amount})</option>)}
                     </select>
                 </div>
-
-                {/* Touchup Modal */}
-                <SelectionSheet title={`${activeCat} - 補色選擇`} isOpen={showTouchupModal} onClose={() => setShowTouchupModal(false)}>
-                    {modalStage === 'session' ? (
-                        <div className="space-y-3">
-                            <p className="text-sm text-gray-500 mb-2">請問是第幾次回來補色呢？</p>
-                            {["第一次回補", "第二次以上"].map(s => (
-                                <button key={s} onClick={() => { setTouchupSession(s); setModalStage('time'); }} className="option-btn bg-gray-50 hover:bg-[#efebe9] border-0">
-                                    {s} <Icon name="chevronRight"/>
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            <button onClick={() => setModalStage('session')} className="text-xs text-gray-400 mb-2 flex items-center"><Icon name="chevronLeft" size={12}/> 返回</button>
-                            <p className="text-sm text-gray-500 mb-2">距離上次操作多久了？</p>
-                            {touchupRanges.length > 0 ? touchupRanges.map(r => (
-                                <button key={r.label} onClick={() => handleTouchupSelect(r.label)} className="option-btn bg-gray-50 hover:bg-[#efebe9] border-0 flex justify-between">
-                                    <span>{r.label}</span>
-                                    <span className="font-bold text-[#8d6e63]">${r.price}</span>
-                                </button>
-                            )) : <div className="text-center text-gray-300 py-4">無此時段報價</div>}
-                        </div>
-                    )}
-                </SelectionSheet>
             </div>
         );
     };
 
+    const StatusCheck = ({ user, onBack }) => {
+        const [phone, setPhone] = useState('');
+        const [results, setResults] = useState([]);
+        const [loading, setLoading] = useState(false);
+        const [reportId, setReportId] = useState(null);
+        const [last5, setLast5] = useState('');
+
+        const search = async () => {
+            if(!phone) return alert("請輸入電話號碼");
+            setLoading(true);
+            try {
+                const snap = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
+                    .where('customerPhone', '==', phone).get();
+                if (snap.empty) {
+                    alert("查無此電話的預約資料"); setResults([]);
+                } else {
+                    const data = snap.docs.map(d=>({id:d.id, ...d.data()}));
+                    data.sort((a,b) => new Date(b.date) - new Date(a.date));
+                    setResults(data);
+                }
+            } catch(e) { alert("查詢發生錯誤: " + e.message); }
+            setLoading(false);
+        };
+
+        const submitPayment = async () => {
+            if(!last5) return alert('請輸入後五碼');
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(reportId).update({
+                paymentStatus: 'reported', paymentInfo: { last5, at: new Date().toISOString() }
+            });
+            alert('回報成功！等待店家確認。'); setReportId(null); search();
+        };
+
+        return (
+            <div className="min-h-screen bg-[#f4f1ea] p-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
+                    <h2 className="font-bold text-lg mb-4 text-[#4e342e]">預約查詢 / 匯款回報</h2>
+                    <div className="flex gap-2">
+                        <input className="flex-1 p-2 border rounded-lg" placeholder="請輸入預約電話" value={phone} onChange={e=>setPhone(e.target.value)} />
+                        <button onClick={search} className="bg-[#8d6e63] text-white px-4 rounded-lg">{loading?'...':'查詢'}</button>
+                    </div>
+                </div>
+                <div className="space-y-3">
+                    {results.map(r => (
+                        <div key={r.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex justify-between mb-2">
+                                <span className="font-bold text-[#8d6e63]">{r.date} {r.time}</span>
+                                <span className={`text-xs px-2 py-1 rounded ${r.status==='confirmed'?'bg-green-100 text-green-700':r.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{r.status==='confirmed'?'✅ 成功':r.status==='cancelled'?'❌ 取消':'⏳ 待確認'}</span>
+                            </div>
+                            <div className="text-sm text-gray-600 mb-2">{r.serviceName} {r.guestIndex && `(第${r.guestIndex}位)`}</div>
+                            <div className="text-sm font-bold text-[#5d4037] mb-2">
+                                訂金：${BANK_INFO.amountPerPerson}
+                            </div>
+                            <div className="border-t pt-2 flex justify-between items-center mt-2">
+                                <span className="text-xs text-gray-500">狀態：{r.paymentStatus==='verified' ? <span className="text-green-600 font-bold">已入帳</span> : r.paymentStatus==='reported' ? <span className="text-blue-600 font-bold">審核中</span> : <span className="text-red-500">未支付</span>}</span>
+                                {r.paymentStatus === 'unpaid' && r.status !== 'cancelled' && (<button onClick={()=>setReportId(r.id)} className="text-xs bg-[#8d6e63] text-white px-3 py-1 rounded">回報</button>)}
+                            </div>
+                            {reportId === r.id && (
+                                <div className="mt-3 bg-gray-50 p-3 rounded flex gap-2">
+                                    <input className="flex-1 p-1 border rounded text-sm" placeholder="帳號後五碼" value={last5} onChange={e=>setLast5(e.target.value)} />
+                                    <button onClick={submitPayment} className="bg-blue-600 text-white px-3 text-xs rounded">送出</button>
+                                    <button onClick={()=>setReportId(null)} className="text-gray-400 text-xs">取消</button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <button onClick={onBack} className="mt-6 w-full py-3 text-gray-400 text-sm">返回首頁</button>
+            </div>
+        )
+    };
+
+    // --- Admin Login ---
+    const AdminLogin = ({ onBack, onLogin }) => {
+        const [pin, setPin] = useState('');
+        return <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea] p-6"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-gray-50 rounded-xl mb-4 text-center text-xl tracking-widest border focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="grid grid-cols-2 gap-3"><button onClick={onBack} className="py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="py-3 rounded-xl bg-[#8d6e63] text-white font-bold">登入</button></div></div></div>;
+    }
+
+    const AdminPanel = ({ user, settings, onBack, services, addons, discounts }) => {
+        const [tab, setTab] = useState('cal'); 
+        const [filterStatus, setFilterStatus] = useState('all');
+        const [books, setBooks] = useState([]);
+        const [editDates, setEditDates] = useState({kaohsiung:'', tainan:''});
+        const [editSlots, setEditSlots] = useState({kaohsiung:'', tainan:''});
+        const [selectedDay, setSelectedDay] = useState(null);
+        const [daySlots, setDaySlots] = useState('');
+        const [msgModal, setMsgModal] = useState(null); 
+        const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
+        const [editMode, setEditMode] = useState(false); 
+        // Admin Calendar State
+        const [calDate, setCalDate] = useState(new Date());
+        const [calSelected, setCalSelected] = useState(null);
+        
+        const bookingRefs = useRef({});
+
+        const [newSvc, setNewSvc] = useState({ cat: MAIN_CATS[0], type: SUB_CATS[0], session: TOUCHUP_SESSIONS[0], timeRange: '', price: '', duration: '90' });
+        const [newDiscName, setNewDiscName] = useState('');
+        const [newDiscAmount, setNewDiscAmount] = useState('200');
+
+        useEffect(() => {
+            if(settings.kaohsiung) {
+                setEditDates(p => ({...p, kaohsiung: settings.kaohsiung.allowedDates?.join(',') || ''}));
+                setEditSlots(p => ({...p, kaohsiung: settings.kaohsiung.timeSlots?.join(',') || ''}));
+            }
+            if(settings.tainan) {
+                setEditDates(p => ({...p, tainan: settings.tainan.allowedDates?.join(',') || ''}));
+                setEditSlots(p => ({...p, tainan: settings.tainan.timeSlots?.join(',') || ''}));
+            }
+            if(settings.templates) setTemplates(settings.templates);
+        }, [settings]);
+
+        useEffect(() => {
+            db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
+              .orderBy('date', 'desc').limit(100).onSnapshot(s => setBooks(s.docs.map(d=>({id:d.id, ...d.data()}))));
+        }, []);
+
+        // Calendar view for Admin
+        const renderAdminOverview = () => {
+            const y = calDate.getFullYear();
+            const m = calDate.getMonth();
+            const days = new Date(y, m+1, 0).getDate();
+            const start = new Date(y, m, 1).getDay();
+            
+            const bookMap = {};
+            books.forEach(b => {
+                if(b.status !== 'cancelled') {
+                    if(!bookMap[b.date]) bookMap[b.date] = {count:0, hasPending:false};
+                    bookMap[b.date].count++;
+                    if(b.status === 'pending' || b.paymentStatus === 'reported') bookMap[b.date].hasPending = true;
+                }
+            });
+
+            return (
+                <div className="space-y-4">
+                    <div className="bg-white p-4 rounded-xl border shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                             <button onClick={()=>setCalDate(new Date(y, m-1))} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">&lt;</button>
+                             <span className="font-bold text-lg text-[#4e342e]">{y}年 {m+1}月</span>
+                             <button onClick={()=>setCalDate(new Date(y, m+1))} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">&gt;</button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-2 text-center text-xs mb-2">
+                             {['日','一','二','三','四','五','六'].map(d => <div key={d} className="text-gray-400">{d}</div>)}
+                        </div>
+                        <div className="grid grid-cols-7 gap-2">
+                            {Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}
+                            {Array.from({length:days}).map((_,i)=>{
+                                const d = i+1;
+                                const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                                const info = bookMap[dStr];
+                                const isSel = calSelected === dStr;
+                                return (
+                                    <div key={d} onClick={()=>setCalSelected(dStr)} className={`aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer border transition-all ${isSel ? 'border-[#8d6e63] bg-[#efebe9] shadow-inner' : 'border-gray-100 hover:bg-gray-50'}`}>
+                                        <span className={`font-bold ${isSel?'text-[#8d6e63]':'text-gray-700'}`}>{d}</span>
+                                        {info && (
+                                            <div className="flex gap-0.5 mt-1">
+                                                <span className={`dot ${info.hasPending ? 'yellow' : 'green'}`}></span>
+                                                {info.count > 1 && <span className="text-[8px] text-gray-400">+{info.count-1}</span>}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                    
+                    {/* Daily List */}
+                    {calSelected && (
+                        <div className="bg-white p-4 rounded-xl shadow-sm border animate-fade-in">
+                            <h3 className="font-bold mb-3 text-[#4e342e] flex items-center gap-2">
+                                <Icon name="calendar" size={18}/> {calSelected} 預約清單
+                            </h3>
+                            <div className="space-y-3">
+                                {books.filter(b => b.date === calSelected).length === 0 ? (
+                                    <p className="text-gray-400 text-sm text-center py-4">當日無預約</p>
+                                ) : (
+                                    books.filter(b => b.date === calSelected).map(b => (
+                                        <div key={b.id} 
+                                            onClick={()=>{ setTab('book'); setTimeout(() => {
+                                                const el = document.getElementById(`book-${b.id}`);
+                                                if(el) {
+                                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    el.classList.add('highlight-row');
+                                                    setTimeout(() => el.classList.remove('highlight-row'), 2000);
+                                                }
+                                            }, 100); }}
+                                            className={`border p-3 rounded-lg text-sm flex justify-between items-center cursor-pointer hover:bg-gray-50 ${b.status==='cancelled'?'opacity-50 bg-gray-50':''}`}>
+                                            <div>
+                                                <div className="font-bold text-[#5d4037]">{b.time} - {b.customerName}</div>
+                                                <div className="text-xs text-gray-500">{b.serviceName} ({b.locationName})</div>
+                                            </div>
+                                            <div className={`text-xs px-2 py-1 rounded ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>
+                                                {b.status==='confirmed'?'已確認':b.status==='cancelled'?'取消':'待確認'}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )
+        };
+
+        const moveService = async (index, direction) => {
+             const sorted = [...services].sort((a, b) => (a.order || 999) - (b.order || 999));
+             if (direction === 'up' && index > 0) {
+                 const temp = sorted[index].order || index;
+                 sorted[index].order = sorted[index-1].order || (index-1);
+                 sorted[index-1].order = temp;
+                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(sorted[index].id).update({order: sorted[index].order});
+                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(sorted[index-1].id).update({order: sorted[index-1].order});
+             } else if (direction === 'down' && index < sorted.length - 1) {
+                 const temp = sorted[index].order || index;
+                 sorted[index].order = sorted[index+1].order || (index+1);
+                 sorted[index+1].order = temp;
+                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(sorted[index].id).update({order: sorted[index].order});
+                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(sorted[index+1].id).update({order: sorted[index+1].order});
+             }
+        };
+
+        const handleDateClick = (locId, dStr) => {
+             if (editMode) {
+                 setSelectedDay({ locId, date: dStr });
+                 const special = settings[locId]?.specialRules?.[dStr];
+                 setDaySlots(special ? special.join(',') : '');
+             } else {
+                 const current = editDates[locId].split(',').filter(x=>x);
+                 const set = new Set(current);
+                 if(set.has(dStr)) set.delete(dStr); else set.add(dStr);
+                 setEditDates({...editDates, [locId]: Array.from(set).sort().join(',')});
+             }
+        };
+ 
+        const saveSettings = async (locId) => {
+             const data = {
+                 allowedDates: editDates[locId].split(',').filter(x=>x),
+                 timeSlots: editSlots[locId].split(',').filter(x=>x),
+                 specialRules: settings[locId]?.specialRules || {}
+             };
+             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(locId).set(data);
+             alert('設定已儲存');
+        };
+ 
+        const saveDayRule = async () => {
+             if(!selectedDay) return;
+             const { locId, date } = selectedDay;
+             const currentRules = settings[locId]?.specialRules || {};
+             if (!daySlots.trim()) delete currentRules[date]; else currentRules[date] = daySlots.split(',').map(x=>x.trim()).filter(x=>x);
+             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(locId).update({ specialRules: currentRules });
+             alert(`${date} 的特殊時段已儲存！`); setSelectedDay(null);
+        };
+ 
+        const copyDefaultSlots = (locId) => {
+             setDaySlots(editSlots[locId]);
+        }
+ 
+        const saveTemplates = async () => {
+             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('templates').set({ templates });
+             alert('訊息範本已儲存');
+        };
+ 
+        const sendTemplateMsg = async (tpl) => {
+             if(!msgModal) return;
+             const b = msgModal;
+             let text = tpl.text.replace('{{date}}', b.date).replace('{{time}}', b.time).replace('{{location}}', b.locationName).replace('{{service}}', b.serviceName);
+             if (window.liff?.isInClient()) { await window.liff.sendMessages([{type:'text', text}]); alert('訊息已傳送'); } 
+             else { navigator.clipboard.writeText(text); alert('已複製訊息，請貼上給顧客'); }
+             setMsgModal(null);
+        };
+ 
+        const submitSvcV26 = async () => {
+             if(!newSvc.price) return;
+             
+             let fullName = `${newSvc.cat} - ${newSvc.type}`;
+             if(newSvc.type === '補色') fullName += ` (${newSvc.session} - ${newSvc.timeRange})`;
+             
+             const maxOrder = services.reduce((max, s) => Math.max(max, s.order || 0), 0);
+ 
+             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').add({
+                 name: fullName,
+                 category: newSvc.cat,
+                 type: newSvc.type,
+                 session: newSvc.type === '補色' ? newSvc.session : null,
+                 timeRange: newSvc.type === '補色' ? newSvc.timeRange : null,
+                 price: Number(newSvc.price),
+                 duration: Number(newSvc.duration),
+                 order: maxOrder + 1
+             });
+             alert('服務已新增');
+        };
+ 
+        const initV26Data = async () => {
+             if(!confirm('這將會建立圖片中的價目表資料，確定嗎？')) return;
+             const batch = db.batch();
+             const sCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services');
+             const samples = [
+                 { category: '霧眉', type: '首次', price: 4800, duration: 120 },
+                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '首次半年補色', price: 1000, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '6-8個月補色', price: 1700, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '8-12個月補色', price: 2700, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第一次回補', timeRange: '一年以上補色', price: 3300, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '4個月內補色', price: 900, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '4-8個月補色', price: 1500, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '8-12個月補色', price: 2500, duration: 90 },
+                 { category: '霧眉', type: '補色', session: '第二次以上', timeRange: '一年以上補色', price: 3000, duration: 90 },
+                 { category: '霧唇', type: '首次', price: 5200, duration: 150 },
+                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '3個月內補色', price: 0, duration: 120 },
+                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '4-6個月補色', price: 1000, duration: 120 },
+                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '6-12個月補色', price: 2500, duration: 120 },
+                 { category: '霧唇', type: '補色', session: '第一次回補', timeRange: '一年以上補色', price: 4000, duration: 120 },
+                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '半年內補色', price: 1200, duration: 120 },
+                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '一年內補色', price: 2000, duration: 120 },
+                 { category: '霧唇', type: '補色', session: '第二次以上', timeRange: '一年以上補色', price: 3500, duration: 120 },
+             ];
+             samples.forEach((s, i) => {
+                 const ref = sCol.doc();
+                 let fname = `${s.category} - ${s.type}`;
+                 if(s.type==='補色') fname += ` (${s.session} - ${s.timeRange})`;
+                 batch.set(ref, { ...s, name: fname, order: i });
+             });
+             const dCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts');
+             const dSamples = [{ name: '醫護人員', amount: 200 }, { name: '學生', amount: 200 }, { name: '軍公教', amount: 200 }, { name: '舊客推薦', amount: 200 }, { name: '當月壽星', amount: 200 }];
+             dSamples.forEach(d => { const ref = dCol.doc(); batch.set(ref, d); });
+             await batch.commit();
+             alert('價目表範本已匯入！');
+        };
+         
+        const addDiscount = async () => {
+             if(!newDiscName) return;
+             await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts').add({ name: newDiscName, amount: Number(newDiscAmount) });
+             setNewDiscName('');
+        };
+
+        const filteredBooks = books.filter(b => {
+             if (filterStatus === 'all') return true;
+             if (filterStatus === 'pending') return b.status === 'pending';
+             if (filterStatus === 'verifying') return b.paymentStatus === 'reported';
+             if (filterStatus === 'paid') return b.paymentStatus === 'verified';
+             if (filterStatus === 'cancelled') return b.status === 'cancelled';
+             return true;
+        });
+ 
+        const sortedServices = [...services].sort((a, b) => (a.order || 999) - (b.order || 999));
+
+        return (
+            <div className="min-h-screen bg-gray-50 p-4">
+                <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4 z-20">
+                    <h2 className="font-bold">後台管理 (V40)</h2>
+                    <button onClick={onBack} className="text-sm bg-gray-100 px-3 py-1 rounded">離開</button>
+                </div>
+                
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    <button onClick={()=>setTab('cal')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='cal'?'bg-[#8d6e63] text-white':'bg-white'}`}>月曆</button>
+                    <button onClick={()=>setTab('book')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='book'?'bg-[#8d6e63] text-white':'bg-white'}`}>預約</button>
+                    <button onClick={()=>setTab('svc')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='svc'?'bg-[#8d6e63] text-white':'bg-white'}`}>服務</button>
+                    <button onClick={()=>setTab('set')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='set'?'bg-[#8d6e63] text-white':'bg-white'}`}>營業</button>
+                    <button onClick={()=>setTab('disc')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='disc'?'bg-[#8d6e63] text-white':'bg-white'}`}>折扣</button>
+                    <button onClick={()=>setTab('msg')} className={`px-4 py-2 rounded whitespace-nowrap ${tab==='msg'?'bg-[#8d6e63] text-white':'bg-white'}`}>訊息</button>
+                </div>
+
+                {tab === 'cal' && renderAdminOverview()}
+
+                {tab === 'book' && (
+                    <div>
+                         <div className="flex gap-2 mb-4 overflow-x-auto">
+                            {[
+                                {id:'all', label:'全部'},
+                                {id:'pending', label:'待確認'},
+                                {id:'verifying', label:'待核帳'},
+                                {id:'paid', label:'已確認'},
+                                {id:'cancelled', label:'已取消'}
+                            ].map(f => (
+                                <button key={f.id} onClick={()=>setFilterStatus(f.id)} 
+                                    className={`status-tab ${filterStatus===f.id ? 'active' : 'inactive'}`}>
+                                    {f.label}
+                                </button>
+                            ))}
+                         </div>
+                        <div className="space-y-4">
+                            {filteredBooks.map(b => (
+                                <div id={`book-${b.id}`} key={b.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-sm transition-colors">
+                                    <div className="flex justify-between mb-2">
+                                        <div className="font-bold text-lg text-[#8d6e63]">{b.date} {b.time}</div>
+                                        <div className={`px-2 py-1 rounded text-xs ${b.status==='confirmed'?'bg-green-100 text-green-700':b.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{b.status==='confirmed'?'已確認':b.status==='cancelled'?'已取消':'待確認'}</div>
+                                    </div>
+                                    <div className="space-y-1 text-gray-600">
+                                        <div>{b.locationName}・{b.serviceName} {b.guestIndex && `(第${b.guestIndex}位)`}</div>
+                                        <div>{b.customerName} ({b.customerPhone})</div>
+                                        <div className="text-[#8d6e63] font-bold">總額：${b.totalPrice}</div>
+                                        {b.paymentStatus === 'reported' && <div className="text-blue-600 font-bold bg-blue-50 p-2 rounded">💰 顧客已匯款：後五碼 {b.paymentInfo?.last5}</div>}
+                                        {b.paymentStatus === 'verified' && <div className="text-green-600 font-bold">💰 訂金已確認</div>}
+                                    </div>
+                                    <div className="flex gap-2 mt-3 pt-3 border-t">
+                                        <button onClick={()=>setMsgModal(b)} className="flex-1 bg-gray-100 py-2 rounded flex items-center justify-center gap-1"><Icon name="msg" size={16}/> 傳訊</button>
+                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({status: 'confirmed'})} className="flex-1 bg-green-50 text-green-700 border border-green-200 py-2 rounded">確認</button>
+                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({paymentStatus: 'verified'})} className="flex-1 bg-blue-50 text-blue-700 border border-blue-200 py-2 rounded">收訂</button>
+                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(b.id).update({status: 'cancelled'})} className="px-3 text-red-400 border border-red-200 rounded">❌</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {tab === 'svc' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-[#4e342e]">新增服務 (層級)</h3>
+                                <button onClick={initV26Data} className="text-xs text-blue-500 underline">⚡ 匯入圖片價目表</button>
+                            </div>
+                            <div className="space-y-3 text-sm">
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">大分類</label>
+                                    <select className="w-full border p-2 rounded" value={newSvc.cat} onChange={e=>setNewSvc({...newSvc, cat:e.target.value})}>
+                                        {MAIN_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">類型</label>
+                                    <select className="w-full border p-2 rounded" value={newSvc.type} onChange={e=>setNewSvc({...newSvc, type:e.target.value})}>
+                                        {SUB_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                {newSvc.type === '補色' && (
+                                    <div className="space-y-3 p-3 bg-gray-50 rounded border">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">回補次數</label>
+                                            <select className="w-full border p-2 rounded" value={newSvc.session} onChange={e=>setNewSvc({...newSvc, session:e.target.value})}>
+                                                {TOUCHUP_SESSIONS.map(c=><option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">時間區間 (例如: 6-8個月內)</label>
+                                            <input className="w-full border p-2 rounded" placeholder="手動輸入區間名稱" value={newSvc.timeRange} onChange={e=>setNewSvc({...newSvc, timeRange:e.target.value})}/>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="flex gap-2">
+                                    <div className="flex-1">
+                                        <label className="block text-xs text-gray-500 mb-1">價格</label>
+                                        <input type="number" className="w-full border p-2 rounded" placeholder="$" value={newSvc.price} onChange={e=>setNewSvc({...newSvc, price:e.target.value})}/>
+                                    </div>
+                                    <div className="w-24">
+                                        <label className="block text-xs text-gray-500 mb-1">分鐘</label>
+                                        <input type="number" className="w-full border p-2 rounded" placeholder="min" value={newSvc.duration} onChange={e=>setNewSvc({...newSvc, duration:e.target.value})}/>
+                                    </div>
+                                </div>
+                                <button onClick={submitSvcV26} className="w-full bg-[#8d6e63] text-white py-2 rounded">新增服務</button>
+                            </div>
+
+                            <div className="mt-6 border-t pt-4">
+                                <h4 className="font-bold text-sm text-gray-500 mb-2">現有服務列表</h4>
+                                <div className="space-y-2">
+                                    {sortedServices.map((s, idx)=>(
+                                        <div key={s.id} className="flex justify-between items-center p-2 border rounded bg-gray-50 text-sm">
+                                            <span>{s.name} (${s.price})</span>
+                                            <div className="flex gap-2">
+                                                <button onClick={()=>moveService(idx, 'up')} className="text-gray-400 hover:text-gray-600 disabled:opacity-20" disabled={idx===0}><Icon name="up" size={16}/></button>
+                                                <button onClick={()=>moveService(idx, 'down')} className="text-gray-400 hover:text-gray-600 disabled:opacity-20" disabled={idx===sortedServices.length-1}><Icon name="down" size={16}/></button>
+                                                <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('services').doc(s.id).delete()} className="text-red-400 ml-2"><Icon name="trash" size={14}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {tab === 'disc' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border">
+                            <h3 className="font-bold text-[#4e342e] mb-4">優惠身份管理</h3>
+                            <div className="flex gap-2 mb-4">
+                                <input className="flex-1 border p-2 rounded" placeholder="身份名稱 (如: 學生)" value={newDiscName} onChange={e=>setNewDiscName(e.target.value)}/>
+                                <input className="w-24 border p-2 rounded" type="number" placeholder="折抵額" value={newDiscAmount} onChange={e=>setNewDiscAmount(e.target.value)}/>
+                                <button onClick={addDiscount} className="bg-[#8d6e63] text-white px-4 rounded">新增</button>
+                            </div>
+                            <div className="space-y-2">
+                                {discounts.map(d => (
+                                    <div key={d.id} className="flex justify-between p-3 border rounded bg-gray-50">
+                                        <span>{d.name} (折抵 ${d.amount})</span>
+                                        <button onClick={()=>db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('discounts').doc(d.id).delete()} className="text-red-400"><Icon name="trash"/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {tab === 'msg' && (
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-[#4e342e]">常用回覆設定</h3>
+                            {templates.map((tpl, i) => (
+                                <div key={i} className="bg-white p-3 rounded-lg border">
+                                    <input className="font-bold w-full mb-2 p-1 border-b" value={tpl.title} onChange={e=>{ const newT = [...templates]; newT[i].title = e.target.value; setTemplates(newT); }} />
+                                    <textarea className="w-full text-sm p-2 bg-gray-50 rounded h-24" value={tpl.text} onChange={e=>{ const newT = [...templates]; newT[i].text = e.target.value; setTemplates(newT); }} />
+                                </div>
+                            ))}
+                            <button onClick={saveTemplates} className="w-full bg-[#8d6e63] text-white py-3 rounded-xl shadow">儲存所有訊息設定</button>
+                        </div>
+                )}
+
+                {tab === 'set' && (
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2 mb-4 bg-yellow-50 p-2 rounded text-sm text-yellow-800">
+                                <button onClick={()=>setEditMode(!editMode)} className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors ${editMode?'bg-yellow-500 justify-end':'bg-gray-300'}`}>
+                                    <div className="w-4 h-4 bg-white rounded-full"></div>
+                                </button>
+                                <span>{editMode ? '✏️ 模式：設定單日特殊時段 (點擊日期編輯)' : '👆 模式：快速開關日期 (點擊切換)'}</span>
+                            </div>
+
+                            {['kaohsiung','tainan'].map(locId => (
+                                <div key={locId} className="border p-4 rounded-xl bg-white">
+                                    <h3 className="font-bold mb-2 capitalize">{locId} 設定</h3>
+                                    {renderSettingsCalendar(locId)}
+                                    <div className="mt-2 text-xs text-gray-400 text-center">
+                                        {editMode ? '點擊日期可設定當天專屬營業時間' : '點擊日期可快速 開放 / 關閉 預約'}
+                                    </div>
+                                    {!editMode && (
+                                        <div className="mt-4">
+                                            <label className="text-xs font-bold block mb-1">預設時段 (全域)</label>
+                                            <input className="w-full border p-2 rounded text-sm" value={editSlots[locId]} onChange={e=>setEditSlots({...editSlots, [locId]:e.target.value})} />
+                                            <button onClick={()=>saveSettings(locId)} className="mt-2 w-full bg-[#8d6e63] text-white py-2 rounded text-sm">儲存基本設定</button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {selectedDay && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <div className="bg-white w-full max-w-sm rounded-xl p-6">
+                                        <h3 className="font-bold mb-4 text-lg border-b pb-2">{selectedDay.date} 特殊設定</h3>
+                                        <p className="text-sm text-gray-500 mb-2">在此輸入該日的特殊營業時間，留空則依預設規則或關閉。</p>
+                                        
+                                        <div className="flex gap-2 mb-2">
+                                            <button onClick={()=>copyDefaultSlots(selectedDay.locId)} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 flex items-center gap-1">
+                                                <Icon name="zap" size={12}/> 帶入預設時段
+                                            </button>
+                                        </div>
+
+                                        <input className="w-full border p-3 rounded mb-4" placeholder="例如: 10:00, 14:00" value={daySlots} onChange={e=>setDaySlots(e.target.value)} />
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>setSelectedDay(null)} className="flex-1 py-2 bg-gray-100 rounded">取消</button>
+                                            <button onClick={saveDayRule} className="flex-1 py-2 bg-[#8d6e63] text-white rounded">儲存單日</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                {msgModal && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white w-full max-w-sm rounded-xl p-4">
+                            <h3 className="font-bold mb-4">選擇傳送訊息</h3>
+                            <div className="space-y-2">{templates.map((t,i) => (<button key={i} onClick={()=>sendTemplateMsg(t)} className="w-full text-left p-3 border rounded hover:bg-gray-50"><div className="font-bold text-[#5d4037]">{t.title}</div><div className="text-xs text-gray-400 truncate">{t.text}</div></button>))}</div>
+                            <button onClick={()=>setMsgModal(null)} className="mt-4 w-full py-2 text-gray-400">取消</button>
+                        </div>
+                    </div>
+                )}
+
+            </div>
+        );
+    };
+
+    // --- Main App ---
     function App() {
         const [user, setUser] = useState(null);
+        const [page, setPage] = useState('home');
         const [step, setStep] = useState(1);
         const [loc, setLoc] = useState(null);
-        
-        // Data
-        const [services, setServices] = useState([]);
-        const [discounts, setDiscounts] = useState([]);
-        const [settings, setSettings] = useState({});
-        const [booked, setBooked] = useState([]);
-
-        // Form State
-        const [guests, setGuests] = useState([{ id: 1, services: [], discount: null }]);
+        const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], discount: null }]);
         const [isMulti, setIsMulti] = useState(false);
         const [date, setDate] = useState(new Date());
         const [time, setTime] = useState(null);
         const [customTime, setCustomTime] = useState('');
-        const [info, setInfo] = useState({name: '', phone: '', notes: ''});
+        const [info, setInfo] = useState({name:'', phone:'', notes:''});
+        const [services, setServices] = useState([]);
+        const [addons, setAddons] = useState([]);
+        const [discounts, setDiscounts] = useState([]);
+        const [settings, setSettings] = useState({});
+        const [booked, setBooked] = useState([]);
 
-        useEffect(() => {
-            auth.signInAnonymously().catch(console.error);
-            if (window.liff) window.liff.init({ liffId: LIFF_ID });
-            return auth.onAuthStateChanged(setUser);
-        }, []);
+        useEffect(() => { auth.signInAnonymously().catch(console.error); if(window.liff) window.liff.init({liffId:LIFF_ID}); return auth.onAuthStateChanged(setUser); }, []);
+        useEffect(() => { if(!user) return; const pub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data'); pub.collection('services').onSnapshot(s=>setServices(s.docs.map(d=>({id:d.id,...d.data()})))); pub.collection('addons').onSnapshot(s=>setAddons(s.docs.map(d=>({id:d.id,...d.data()})))); pub.collection('discounts').onSnapshot(s=>setDiscounts(s.docs.map(d=>({id:d.id,...d.data()})))); pub.collection('settings').onSnapshot(s=>{const o={};s.forEach(d=>o[d.id]=d.data());setSettings(o)}); }, [user]);
+        useEffect(() => { if(!loc) return; const dStr=date.toISOString().split('T')[0]; db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').where('locationId','==',loc.id).where('date','==',dStr).onSnapshot(s=>setBooked(s.docs.map(d=>d.data().time))); }, [loc,date]);
 
-        useEffect(() => {
-            if(!user) return;
-            const pub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
-            pub.collection('services').onSnapshot(s => setServices(s.docs.map(d => ({id:d.id, ...d.data()}))));
-            pub.collection('discounts').onSnapshot(s => setDiscounts(s.docs.map(d => ({id:d.id, ...d.data()}))));
-            pub.collection('settings').onSnapshot(s => { const obj={}; s.forEach(d=>obj[d.id]=d.data()); setSettings(obj); });
-        }, [user]);
-
-        useEffect(() => {
-            if (!loc) return;
-            const dStr = date.toISOString().split('T')[0];
-            db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
-              .where('locationId', '==', loc.id).where('date', '==', dStr)
-              .onSnapshot(s => setBooked(s.docs.map(d => d.data().time)));
-        }, [loc, date]);
-
-        // Logic
-        const handleGuestUpdate = (idx, type, val) => {
-            const newGuests = [...guests];
-            if (type === 'setService') {
-                // Logic: Replace service of same category, allow diff category
-                const existing = newGuests[idx].services.filter(s => s.category !== val.category);
-                newGuests[idx].services = [...existing, val];
-            } else if (type === 'discount') {
-                newGuests[idx].discount = discounts.find(d => d.id === val) || null;
-            }
-            setGuests(newGuests);
-        };
-
+        const handleGuestUpdate = (idx, type, val) => { const ng = [...guests]; if(type==='services') ng[idx].services=val; if(type==='discount') ng[idx].discount=discounts.find(d=>d.id===val)||null; if(type==='addons') ng[idx].addons=val; setGuests(ng); };
         const calculateTotal = () => {
             let total = 0;
             guests.forEach(g => {
                 g.services.forEach(s => total += s.price);
-                const hasTouchup = g.services.some(s => s.type === '補色');
-                // Discount logic
+                g.addons.forEach(a => total += a.price);
                 if (g.discount) {
-                    // Touchup only allow birthday discount
-                    if (hasTouchup) {
-                        if (g.discount.name.includes('壽星')) total -= 100; // Fixed 100 for touchup birthday
-                    } else {
-                        total -= g.discount.amount;
-                    }
+                     if (g.services.some(s=>s.type==='補色')) { if(g.discount.name.includes('壽星')) total-=100; }
+                     else total-=g.discount.amount;
                 }
             });
-            // Multi-person discount (Only for non-touchup guests)
-            if (isMulti && guests.length >= 2) {
-                guests.forEach(g => {
-                    const hasTouchup = g.services.some(s => s.type === '補色');
-                    if (!hasTouchup) total -= 200;
-                });
-            }
+            if (isMulti && guests.length >= 2) { guests.forEach(g => { if(!g.services.some(s=>s.type==='補色')) total-=200; }); }
             return total;
         };
-        
-        const deposit = guests.length * BANK_INFO.amountPerPerson;
-        const total = calculateTotal();
 
         const handleSubmit = async () => {
-            if (!info.name || !info.phone) return alert('請填寫聯絡資料');
-            
-            const batch = db.batch();
-            const dStr = date.toISOString().split('T')[0];
-            const tVal = time === '微調時段申請' ? `微調 ${customTime}` : time;
-            const groupId = Date.now().toString();
-
+            const batch = db.batch(); const dStr=date.toISOString().split('T')[0]; const tVal=time==='微調時段申請'?`微調 ${customTime}`:time; const gId=Date.now().toString();
+            let msgDetails = "";
             guests.forEach((g, i) => {
-                const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc();
-                batch.set(ref, {
-                    locationId: loc.id, locationName: loc.name,
-                    serviceId: g.services.map(s=>s.id), serviceName: g.services.map(s=>s.name).join('+'),
-                    date: dStr, time: tVal,
-                    customerName: info.name + (guests.length>1?`(${i+1})`:''), customerPhone: info.phone,
-                    notes: info.notes, discountIdentity: g.discount?.name || '',
-                    groupId, guestIndex: i + 1, totalPrice: total,
-                    status: 'pending', paymentStatus: 'unpaid',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: user.uid
-                });
+                 const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc();
+                 const svcStr = g.services.map(s=>s.name).join('+');
+                 msgDetails += `👤 ${i+1}: ${svcStr}\n`;
+                 batch.set(ref, { locationId:loc.id, locationName:loc.name, serviceId:g.services.map(s=>s.id), serviceName:svcStr, addons:g.addons, date:dStr, time:tVal, customerName:info.name+(guests.length>1?`(${i+1})`:''), customerPhone:info.phone, notes:info.notes, discountIdentity:g.discount?.name||'', groupId:gId, guestIndex:i+1, totalPrice:calculateTotal(), status:'pending', paymentStatus:'unpaid', createdAt:firebase.firestore.FieldValue.serverTimestamp(), userId:user.uid });
             });
-
             await batch.commit();
-            
-            const msg = `【預約申請】\n📍 ${loc.name}\n📅 ${dStr} ${tVal}\n👤 人數：${guests.length}\n💰 總額：${total}\n⚠️ 訂金：${deposit}\n\n🔗 回報：https://liff.line.me/${LIFF_ID}?p=check`;
-            if (window.liff?.isInClient()) window.liff.sendMessages([{type:'text', text:msg}].catch(()=>{}));
-            
-            alert('預約已送出！');
-            setStep(1); setLoc(null); // Reset
+            const msg = `【預約申請】\n📍 ${loc.name}\n📅 ${dStr} ${tVal}\n${msgDetails}💰 總額：${calculateTotal()}\n⚠️ 訂金：${guests.length*1000}\n\n🔗 回報：https://liff.line.me/${LIFF_ID}?p=check`;
+            if(window.liff?.isInClient()) window.liff.sendMessages([{type:'text', text:msg}]).catch(()=>{}); else alert("預約送出！\n請複製連結回報：\nhttps://liff.line.me/"+LIFF_ID+"?p=check");
+            setStep(4);
         };
 
-        // --- Render Steps ---
-        if (!loc) {
-            return (
-                <div className="min-h-screen flex flex-col justify-center p-6 space-y-6">
-                    <div className="text-center space-y-2">
-                        <h1 className="text-3xl font-bold text-[#5d4037] tracking-widest">AM Studio</h1>
-                        <p className="text-sm text-[#8d6e63] tracking-widest">PROFESSIONAL BEAUTY</p>
-                    </div>
-                    <div className="grid gap-4">
+        if(page==='admin-login') return <AdminLogin onBack={()=>setPage('home')} onLogin={()=>setPage('admin')}/>;
+        if(page==='admin') return <AdminPanel user={user} settings={settings} onBack={()=>setPage('home')} services={services} addons={addons} discounts={discounts} />;
+        if(page==='check-status') return <StatusCheck user={user} onBack={()=>setPage('home')}/>;
+
+        if(!loc) return (
+            <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-[#faf9f6]">
+                <div className="absolute top-6 left-6"><button onClick={()=>setPage('admin-login')} className="text-gray-300 p-2"><Icon name="settings"/></button></div>
+                <div className="w-full max-w-sm space-y-8 text-center">
+                    <div className="mb-10"><h1 className="text-3xl font-bold text-[#5d4037] tracking-widest mb-1">AM Studio</h1><p className="text-xs text-[#8d6e63] tracking-[0.2em]">PROFESSIONAL BEAUTY</p></div>
+                    <div className="space-y-4">
                         {LOCATIONS.map(l => (
-                            <button key={l.id} onClick={() => setLoc(l)} className="app-card flex items-center justify-between hover:border-[#C4A48C] transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className="bg-[#FAF5F0] p-3 rounded-full text-[#8d6e63]"><Icon name="map" size={24}/></div>
-                                    <div className="text-left">
-                                        <div className="font-bold text-lg">{l.name}</div>
-                                        <div className="text-xs text-gray-400">點擊開始預約</div>
-                                    </div>
-                                </div>
-                                <Icon name="chevronRight" className="text-gray-300"/>
+                            <button key={l.id} onClick={() => setLoc(l)} className="location-btn group">
+                                <div className="bg-[#fdfbf7] p-4 rounded-full text-[#8d6e63] group-hover:bg-[#8d6e63] group-hover:text-white transition-colors"><Icon name="map" size={28}/></div>
+                                <div className="font-bold text-lg text-[#5d4037]">{l.name}</div>
+                                <div className="text-xs text-gray-400 tracking-wider">點擊開始預約</div>
                             </button>
                         ))}
+                        <button onClick={()=>setPage('check-status')} className="w-full py-4 border border-[#e7e0da] rounded-3xl text-gray-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-white hover:shadow-sm transition-all"><Icon name="search" size={16}/> 查詢預約</button>
                     </div>
-                    {/* Admin Access Hidden */}
-                    <button className="fixed top-4 left-4 opacity-10" onClick={()=>alert('Admin Login Placeholder')}><Icon name="settings"/></button>
                 </div>
-            );
-        }
+            </div>
+        )
 
         return (
             <div className="min-h-screen pb-24">
-                {/* Navbar */}
-                <div className="sticky top-0 bg-white/90 backdrop-blur-md p-4 z-20 shadow-sm flex items-center justify-between">
-                    <button onClick={() => { if(step===1) setLoc(null); else setStep(s=>s-1); }} className="p-2"><Icon name="chevronLeft" className="text-[#8d6e63]"/></button>
+                <div className="sticky top-0 bg-white/90 backdrop-blur-md p-4 z-20 flex items-center justify-between border-b border-gray-100">
+                    <button onClick={()=>{ if(step===1) setLoc(null); else setStep(s=>s-1); }} className="p-2 text-[#8d6e63]"><Icon name="chevronLeft"/></button>
                     <span className="font-bold text-[#5d4037]">預約流程</span>
                     <div className="w-8"></div>
                 </div>
-
-                <div className="p-4 space-y-6">
-                    {/* Step 1: Services */}
+                <div className="p-4 space-y-6 max-w-md mx-auto">
                     {step === 1 && (
                         <div className="fade-in">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold">選擇服務</h2>
-                                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-                                    <button onClick={()=>{setIsMulti(false); setGuests([guests[0]]);}} className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${!isMulti ? 'bg-white shadow text-[#5d4037]' : 'text-gray-400'}`}>單人</button>
-                                    <button onClick={()=>{setIsMulti(true); if(guests.length<2) setGuests([...guests, {id:Date.now(), services:[]}]);}} className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${isMulti ? 'bg-white shadow text-[#5d4037]' : 'text-gray-400'}`}>同行</button>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-[#5d4037]">選擇服務</h2>
+                                <div className="flex bg-white p-1 rounded-lg border border-gray-200">
+                                    <button onClick={()=>{setIsMulti(false); setGuests([guests[0]]);}} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!isMulti?'bg-[#5d4037] text-white shadow-md':'text-gray-400'}`}>單人</button>
+                                    <button onClick={()=>{setIsMulti(true); if(guests.length<2) setGuests([...guests, {id:Date.now(), services:[], addons:[]}]);}} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${isMulti?'bg-[#5d4037] text-white shadow-md':'text-gray-400'}`}>同行</button>
                                 </div>
                             </div>
-                            
                             {guests.map((g, i) => (
-                                <GuestSection 
-                                    key={g.id} 
-                                    index={i} 
-                                    guest={g} 
-                                    services={services} 
-                                    addons={addons}
-                                    discounts={discounts}
+                                <GuestSection key={g.id} index={i} guest={g} services={services} addons={addons} discounts={discounts}
                                     onUpdate={(type, val) => handleGuestUpdate(i, type, val)}
-                                    showRemove={isMulti && i > 0}
-                                    onRemove={() => { const ng = [...guests]; ng.splice(i, 1); setGuests(ng); }}
+                                    showRemove={isMulti && i > 0} onRemove={() => { const ng = [...guests]; ng.splice(i, 1); setGuests(ng); }}
                                 />
                             ))}
-
                             {isMulti && (
-                                <button onClick={() => setGuests([...guests, { id: Date.now(), services: [], discount: null }])} 
-                                    className="w-full py-3 border-2 border-dashed border-[#C4A48C] text-[#C4A48C] rounded-2xl flex items-center justify-center gap-2 font-bold hover:bg-[#FFFBF9]">
-                                    <Icon name="plus"/> 再加一位
+                                <button onClick={() => setGuests([...guests, { id: Date.now(), services: [], addons: [], discount: null }])} 
+                                    className="solid-btn">
+                                    <Icon name="plus"/> 新增一位同伴 (多人同行)
                                 </button>
                             )}
                         </div>
                     )}
-
-                    {/* Step 2: Date & Time */}
                     {step === 2 && (
                         <div className="fade-in space-y-6">
                             <div className="app-card">
-                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                                <div className="flex justify-between items-center mb-6">
                                     <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1))}><Icon name="chevronLeft"/></button>
-                                    <span className="font-bold text-lg">{date.getFullYear()} 年 {date.getMonth()+1} 月</span>
+                                    <span className="font-bold text-lg">{date.getFullYear()}年 {date.getMonth()+1}月</span>
                                     <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()+1))}><Icon name="chevronRight"/></button>
                                 </div>
-                                {/* Calendar Grid */}
-                                <div className="grid grid-cols-7 gap-2 text-center mb-2">
-                                    {['日','一','二','三','四','五','六'].map(d=><span key={d} className="text-xs text-gray-400">{d}</span>)}
-                                </div>
-                                <div className="grid grid-cols-7 gap-2">
-                                    {Array.from({length: new Date(date.getFullYear(), date.getMonth(), 1).getDay()}).map((_,i)=><div key={'e'+i}/>)}
-                                    {Array.from({length: new Date(date.getFullYear(), date.getMonth()+1, 0).getDate()}).map((_,i)=>{
-                                        const d = i+1;
-                                        const curr = new Date(date.getFullYear(), date.getMonth(), d);
-                                        const dStr = curr.toISOString().split('T')[0];
-                                        const conf = settings[loc.id];
-                                        // Allow if in allowedDates OR open by default?
-                                        // Use previous logic: allowedDates whitelist
-                                        const isOpen = conf?.allowedDates?.includes(dStr);
-                                        const isPast = curr < new Date().setHours(0,0,0,0);
-                                        const isSel = d === date.getDate();
-                                        
-                                        return (
-                                            <button key={d} disabled={isPast || !isOpen} 
-                                                onClick={() => { setDate(curr); setTime(null); }}
-                                                className={`h-9 w-9 rounded-full text-sm flex items-center justify-center transition-all ${isSel ? 'bg-[#8d6e63] text-white shadow-md font-bold' : (isPast || !isOpen) ? 'text-gray-200' : 'hover:bg-[#F5F5F5] font-medium'}`}>
-                                                {d}
-                                            </button>
-                                        )
-                                    })}
-                                </div>
+                                <div className="grid grid-cols-7 gap-2 text-center text-xs text-gray-400 mb-2">{['日','一','二','三','四','五','六'].map(d=><span key={d}>{d}</span>)}</div>
+                                <div className="grid grid-cols-7 gap-2">{Array.from({length: new Date(date.getFullYear(), date.getMonth(), 1).getDay()}).map((_,i)=><div key={'e'+i}/>)}{Array.from({length: new Date(date.getFullYear(), date.getMonth()+1, 0).getDate()}).map((_,i)=>{const d = i+1; const curr = new Date(date.getFullYear(), date.getMonth(), d); const dStr = curr.toISOString().split('T')[0]; const conf = settings[loc.id]; const isOpen = conf?.allowedDates?.includes(dStr); const isSel = d === date.getDate(); return <button key={d} disabled={!isOpen} onClick={() => { setDate(curr); setTime(null); }} className={`h-9 w-9 rounded-lg text-sm flex items-center justify-center font-bold transition-all ${isSel ? 'bg-[#8d6e63] text-white shadow-md' : !isOpen ? 'text-gray-200' : 'hover:bg-gray-50 text-gray-700'}`}>{d}</button>})}</div>
                             </div>
-
-                            {/* Time Slots */}
-                            <div className="grid grid-cols-3 gap-3">
-                                {DEFAULT_SLOTS.map(t => {
-                                    const dStr = date.toISOString().split('T')[0];
-                                    const conf = settings[loc.id];
-                                    const slots = (conf?.specialRules && conf.specialRules[dStr]) || (conf?.timeSlots || DEFAULT_SLOTS);
-                                    
-                                    // Check if booked
-                                    const isBooked = booked.includes(t);
-                                    // Check if valid slot for this day
-                                    const isValid = slots.includes(t);
-
-                                    if (!isValid) return null;
-
-                                    return (
-                                        <button key={t} disabled={isBooked} 
-                                            onClick={() => { setTime(t); setCustomTime(''); }}
-                                            className={`time-chip ${time === t ? 'active' : ''} ${isBooked ? 'disabled' : ''}`}>
-                                            {t} {isBooked && <span className="block text-[10px] font-normal">已滿</span>}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {time === '微調時段申請' && (
-                                <div className="fade-in bg-[#FFFBF9] border border-[#EBE0D9] p-4 rounded-xl">
-                                    <label className="text-xs font-bold text-[#8D6E63] mb-1 block">請輸入希望時間</label>
-                                    <input type="time" className="w-full text-xl font-bold bg-transparent outline-none text-center" value={customTime} onChange={e=>setCustomTime(e.target.value)} />
-                                </div>
-                            )}
+                            <h3 className="font-bold text-[#5d4037] mb-2 flex items-center gap-2"><Icon name="clock"/> 選擇時段</h3>
+                            <div className="grid grid-cols-3 gap-3">{DEFAULT_SLOTS.map(t => {const dStr = date.toISOString().split('T')[0]; const conf = settings[loc.id]; const slots = (conf?.specialRules && conf.specialRules[dStr]) || (conf?.timeSlots || DEFAULT_SLOTS); if(!slots.includes(t)) return null; const isBooked = booked.includes(t); return (<button key={t} disabled={isBooked} onClick={() => { setTime(t); setCustomTime(''); }} className={`time-chip ${time === t ? 'active' : ''} ${isBooked ? 'disabled' : ''}`}>{t} {isBooked && <span className="block text-[10px] font-normal">已滿</span>}</button>);})}</div>
+                            {time === '微調時段申請' && <div className="fade-in bg-white border border-[#d7ccc8] p-4 rounded-xl"><label className="text-xs font-bold text-[#8d6e63] mb-1 block">輸入希望時間</label><input type="time" className="w-full text-xl font-bold bg-transparent outline-none text-center" value={customTime} onChange={e=>setCustomTime(e.target.value)} /></div>}
                         </div>
                     )}
-
-                    {/* Step 3: Info */}
                     {step === 3 && (
                         <div className="fade-in space-y-4">
-                            <div className="app-card space-y-4">
-                                <div><label className="text-xs text-gray-400 font-bold ml-1">聯絡姓名</label><input className="w-full p-3 bg-[#FAFAFA] rounded-xl border-none outline-none font-medium focus:ring-1 focus:ring-[#C4A48C]" placeholder="真實姓名" value={info.name} onChange={e=>setInfo({...info, name:e.target.value})}/></div>
-                                <div><label className="text-xs text-gray-400 font-bold ml-1">電話</label><input type="tel" className="w-full p-3 bg-[#FAFAFA] rounded-xl border-none outline-none font-medium focus:ring-1 focus:ring-[#C4A48C]" placeholder="09xx-xxx-xxx" value={info.phone} onChange={e=>setInfo({...info, phone:e.target.value})}/></div>
-                                <div><label className="text-xs text-gray-400 font-bold ml-1">備註</label><textarea className="w-full p-3 bg-[#FAFAFA] rounded-xl border-none outline-none font-medium focus:ring-1 focus:ring-[#C4A48C] h-24 resize-none" placeholder="注意事項..." value={info.notes} onChange={e=>setInfo({...info, notes:e.target.value})}/></div>
-                            </div>
-                            
-                            <div className="bg-[#FFFBF9] p-5 rounded-2xl border border-[#EBE0D9] space-y-3">
-                                <h3 className="font-bold text-[#5D4037]">訂金資訊</h3>
-                                <div className="flex justify-between text-sm"><span>銀行</span><span className="font-bold">{BANK_INFO.code}</span></div>
-                                <div className="flex justify-between text-sm"><span>帳號</span><span className="font-bold tracking-widest">{BANK_INFO.account}</span></div>
-                                <div className="flex justify-between text-sm border-t border-dashed border-[#D7CCC8] pt-2 mt-2">
-                                    <span>應付訂金</span><span className="text-red-500 font-bold text-lg">${deposit}</span>
-                                </div>
-                            </div>
+                            <div className="app-card space-y-4"><div><label className="text-xs font-bold text-gray-400 ml-1">聯絡姓名</label><input className="w-full p-4 bg-[#FAFAFA] rounded-xl border-none font-bold text-[#5d4037] focus:ring-1 focus:ring-[#C4A48C]" placeholder="真實姓名" value={info.name} onChange={e=>setInfo({...info, name:e.target.value})}/></div><div><label className="text-xs font-bold text-gray-400 ml-1">電話</label><input type="tel" className="w-full p-4 bg-[#FAFAFA] rounded-xl border-none font-bold text-[#5d4037] focus:ring-1 focus:ring-[#C4A48C]" placeholder="09xx-xxx-xxx" value={info.phone} onChange={e=>setInfo({...info, phone:e.target.value})}/></div><div><label className="text-xs font-bold text-gray-400 ml-1">備註</label><textarea className="w-full p-4 bg-[#FAFAFA] rounded-xl border-none text-[#5d4037] focus:ring-1 focus:ring-[#C4A48C] h-24 resize-none" placeholder="注意事項..." value={info.notes} onChange={e=>setInfo({...info, notes:e.target.value})}/></div></div>
+                            <div className="bg-[#FFFBF9] p-5 rounded-2xl border border-[#EBE0D9] space-y-3"><h3 className="font-bold text-[#5D4037]">訂金資訊</h3><div className="flex justify-between text-sm"><span>銀行</span><span className="font-bold">{BANK_INFO.code}</span></div><div className="flex justify-between text-sm"><span>帳號</span><span className="font-bold tracking-widest">{BANK_INFO.account}</span></div><div className="flex justify-between text-sm border-t border-dashed border-[#D7CCC8] pt-2 mt-2"><span>應付訂金</span><span className="text-red-500 font-bold text-lg">${guests.length * BANK_INFO.amountPerPerson}</span></div></div>
                             <label className="flex items-center gap-2 justify-center py-2"><input type="checkbox" id="agree" className="w-5 h-5 accent-[#8D6E63]"/> <span className="text-sm font-bold text-[#8D6E63]">我同意支付訂金規則</span></label>
                         </div>
                     )}
+                    {step === 4 && (
+                        <div className="text-center pt-10 fade-in"><div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 shadow-sm"><Icon name="check" size={48}/></div><h2 className="text-3xl font-bold mb-3 text-[#5d4037]">預約成功！</h2><p className="text-gray-500 mb-8">請記得匯款並回報。</p><button onClick={()=>window.location.reload()} className="w-full bg-[#8d6e63] text-white py-4 rounded-2xl font-bold shadow-lg">返回首頁</button></div>
+                    )}
                 </div>
-
-                {/* Sticky Footer */}
                 {step < 4 && (
-                    <div className="sticky-footer flex items-center gap-4">
-                        <div className="flex-1">
-                            <div className="text-xs text-gray-400">預估總額</div>
-                            <div className="text-2xl font-bold text-[#5D4037]">${total}</div>
-                        </div>
-                        <button onClick={() => {
-                            if(step===1 && guests.some(g=>g.services.length===0)) return alert('請選擇服務');
-                            if(step===2 && !time) return alert('請選擇時間');
-                            if(step===3) handleSubmit();
-                            else setStep(s=>s+1);
-                        }} className="bg-[#2C2C2C] text-white px-8 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
-                            {step===3 ? '送出預約' : '下一步'}
-                        </button>
+                    <div className="sticky-footer">
+                        <div className="flex-1"><div className="text-xs opacity-70 mb-1">預估總額</div><div className="text-2xl font-bold">${calculateTotal()}</div></div>
+                        <button onClick={()=>{ if(step===1 && guests.some(g=>g.services.length===0)) return alert('請選擇服務'); if(step===2 && !time) return alert('請選擇時間'); if(step===3 && (!info.name || !info.phone)) return alert('請填寫資料'); if(step===3 && !document.getElementById('agree').checked) return alert('請同意規則'); if(step===3) handleSubmit(); else setStep(s=>s+1); }} className="bg-[#2c2c2c] text-white px-10 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">{step===3?'送出':'下一步'}</button>
                     </div>
                 )}
             </div>
