@@ -1,331 +1,703 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>舊客補色查詢 | AM Beauty Studio</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AM Studio 線上預約</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* 全域設定 */
+    body { 
+      font-family: 'Noto Serif TC', serif; 
+      background-color: #faf9f6; 
+      color: #5d4037; 
+      -webkit-tap-highlight-color: transparent;
+    }
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = { corePlugins: { preflight: false } }
-    </script>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    <style>
-        /* --- 品牌色調 (維持一致) --- */
-        :root {
-            --primary: #D6BFA8;   /* 奶茶棕 */
-            --primary-dark: #C4A488;
-            --secondary: #E6C2C2; /* 玫瑰粉 */
-            --text: #5A483F;      /* 深咖字 */
-            --text-light: #8D7B72;
-            --bg-color: #F9F8F6;  
-            --card-shadow: 0 10px 30px -10px rgba(214, 191, 168, 0.4);
-        }
+    /* 按鈕樣式 */
+    .option-btn { 
+      @apply w-full p-4 rounded-2xl mb-3 flex justify-between items-center transition-all duration-200 text-lg font-medium shadow-sm relative overflow-hidden;
+      background-color: #ffffff;      
+      color: #5d4037;                
+      border: 1px solid #e7e0da;     
+      min-height: 60px;              
+    }
+    .option-btn:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(141, 110, 99, 0.08); 
+      border-color: #d7ccc8;
+    }
+    .option-btn.active { 
+      background-color: #efebe9;     
+      color: #3e2723;                
+      border: 2px solid #8d6e63;     
+      font-weight: bold;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .option-btn:active { transform: scale(0.98); }
 
-        /* 全域設定 */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    /* 大卡片按鈕 */
+    .big-card-btn { 
+      @apply flex flex-col items-center justify-center p-6 rounded-3xl transition-all duration-300 shadow-sm aspect-square cursor-pointer border;
+      background-color: #ffffff;
+      border: 1px solid #e7e0da;
+      color: #5d4037;
+    }
+    .big-card-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(141, 110, 99, 0.12);
+      border-color: #d7ccc8;
+    }
+    .big-card-btn:active {
+      transform: scale(0.98);
+      background-color: #faf7f5;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            background-image: url('bg.jpg'); /* 請確保背景圖檔名正確 */
-            background-size: cover;
-            background-attachment: fixed;
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 0; padding: 0;
-            padding-bottom: 100px;
-            -webkit-font-smoothing: antialiased;
-            min-height: 100vh;
-        }
+    /* 虛線按鈕 */
+    .dashed-btn {
+      @apply w-full py-4 rounded-xl border-2 border-dashed border-[#8d6e63] text-[#8d6e63] font-bold text-lg flex items-center justify-center gap-2 cursor-pointer transition-all bg-transparent mb-6 hover:bg-[#fffaf9];
+    }
 
-        /* --- 頂部 Header --- */
-        .header-section {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white; 
-            padding: 40px 20px 60px 20px; 
-            text-align: center; 
-            border-radius: 0 0 40px 40px; 
-            position: relative; 
-            box-shadow: 0 10px 25px rgba(196, 164, 136, 0.4);
-            margin-bottom: -40px; /* 讓搜尋框往上浮動 */
-        }
-        
-        .header-logo { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; margin: 0; }
-        .header-sub { font-size: 0.9rem; opacity: 0.9; margin-top: 5px; font-weight: 300; }
+    /* 實心按鈕 */
+    .solid-btn {
+      @apply w-full py-3 bg-[#8d6e63] text-white rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-[#795548] font-bold transition-all transform hover:scale-[1.02];
+    }
 
-        .container { max-width: 600px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 10; }
+    .guest-block { 
+        @apply bg-white p-5 rounded-3xl shadow-sm border border-[#f0f0f0] mb-6 relative;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3; border-top: 3px solid #C4A48C; border-radius: 50%;
+      width: 24px; height: 24px; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- 查詢框 (主要焦點) --- */
-        .search-card {
-            background: #fff; border-radius: 24px; padding: 35px 25px;
-            box-shadow: var(--card-shadow); text-align: center; 
-            border: 1px solid rgba(255,255,255,0.8);
-        }
-        .search-icon-box {
-            width: 70px; height: 70px; background: #FFF5F5;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px auto; color: var(--secondary);
-            font-size: 2rem; border: 4px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-        
-        .search-title { font-size: 1.4rem; font-weight: 700; color: var(--text); margin: 0 0 5px 0; }
-        .search-desc { font-size: 0.9rem; color: #999; margin-bottom: 25px; }
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .input-group { position: relative; margin-bottom: 20px; }
-        .search-input {
-            width: 100%; padding: 18px 20px 18px 50px; font-size: 1.1rem;
-            border: 2px solid #eee; border-radius: 18px; background-color: #FAFAFA;
-            outline: none; transition: 0.3s; color: var(--text);
-        }
-        .search-input:focus { background-color: #fff; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(214, 191, 168, 0.15); }
-        .input-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #ccc; font-size: 1.2rem; }
+    .date-cell { @apply aspect-square flex items-center justify-center rounded-lg text-sm cursor-pointer border border-transparent transition-all; }
+    .date-cell:hover { @apply bg-gray-50; }
+    .date-cell.selected { @apply bg-[#8d6e63] text-white font-bold shadow-md; }
+    .date-cell.has-rule { @apply border-orange-300 bg-orange-50 text-orange-700; }
+    .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin: 0 1px; }
+    .dot.green { background-color: #10b981; }
+    .dot.yellow { background-color: #f59e0b; }
+    
+    .status-tab { @apply px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors border; }
+    .status-tab.active { @apply bg-[#8d6e63] text-white border-[#8d6e63]; }
+    .status-tab.inactive { @apply bg-white text-gray-500 border-gray-200 hover:bg-gray-50; }
 
-        .btn-search {
-            display: block; width: 100%; padding: 18px 0;
-            background: linear-gradient(135deg, #E6C2C2 0%, #Dcb0b0 100%);
-            color: #fff; border-radius: 18px; font-weight: 700; font-size: 1.1rem;
-            cursor: pointer; border: none; letter-spacing: 1px;
-            box-shadow: 0 8px 20px rgba(230, 194, 194, 0.4); transition: 0.3s;
-        }
-        .btn-search:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(230, 194, 194, 0.4); }
-        .btn-search:disabled { opacity: 0.7; cursor: wait; }
+    .time-chip {
+      @apply py-3 rounded-xl text-center text-sm font-bold border border-transparent bg-white shadow-sm transition-all duration-200;
+    }
+    .time-chip.active { @apply bg-[#8d6e63] text-white shadow-md transform scale-105; }
+    .time-chip.disabled { @apply opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 shadow-none; }
 
-        .notice-text { font-size: 0.85rem; color: #C17E7E; font-weight: bold; margin-top: 15px; background: #FFF0F0; padding: 10px; border-radius: 10px; display: inline-block; }
+    .location-btn {
+      @apply w-full p-6 bg-white rounded-3xl border border-[#e7e0da] shadow-sm flex flex-col items-center justify-center gap-3 transition-all duration-200;
+    }
+    .location-btn:active { @apply transform scale-[0.98] bg-[#faf9f8] border-[#d7ccc8]; }
 
-        /* --- 查詢結果卡片 --- */
-        .result-container { margin-top: 30px; }
-        .result-card {
-            background: white; border-radius: 20px; padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.06); margin-bottom: 20px;
-            border: 1px solid rgba(0,0,0,0.02); animation: slideUp 0.5s ease;
-        }
-        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
-        .result-name { font-size: 1.3rem; font-weight: 700; color: var(--text); }
-        
-        .info-badges { display: flex; gap: 10px; margin-bottom: 20px; }
-        .info-badge { flex: 1; background: #F9F8F6; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #eee; }
-        .info-label { display: block; font-size: 0.8rem; color: #999; margin-bottom: 4px; }
-        .info-value { display: block; font-size: 1.1rem; font-weight: 700; color: var(--text); }
-        .info-value.highlight { color: #C17E7E; }
+    .sticky-footer {
+      @apply fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 p-4 pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40 flex items-center gap-4;
+    }
 
-        /* 價格顯示 */
-        .price-box { 
-            margin-top: 15px; padding: 15px; border-radius: 15px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
-        }
+    .modal-backdrop { @apply fixed inset-0 bg-black/40 z-50 flex items-end justify-center backdrop-blur-[2px] transition-opacity; }
+    .bottom-sheet { @apply bg-white w-full max-w-md rounded-t-3xl p-6 pb-10 transform transition-transform duration-300 ease-out shadow-2xl; }
+  </style>
 
-        /* 展開收合 */
-        .collapsible-content { transition: all 0.4s; max-height: 0; overflow: hidden; opacity: 0; }
-        .collapsible-content.expanded { max-height: 1000px; opacity: 1; }
-        
-        /* 訊息提示 */
-        .msg-box { margin-top: 20px; padding: 15px; border-radius: 12px; font-size: 0.95rem; font-weight: bold; display: none; text-align: center; }
-        .msg-error { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
-        .msg-success { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+  <!-- React & Babel -->
+  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  
+  <!-- Firebase -->
+  <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
-        /* 懸浮預約按鈕 */
-        .floating-cta { 
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
-            width: 85%; max-width: 350px; background: var(--text); color: white; 
-            padding: 16px; border-radius: 50px; text-align: center; 
-            text-decoration: none; font-weight: 700; font-size: 1.1rem; 
-            box-shadow: 0 10px 25px rgba(90, 72, 63, 0.4); z-index: 950; 
-            display: flex; align-items: center; justify-content: center; gap: 8px; 
-            transition: 0.2s;
-        }
-        .floating-cta:active { transform: translateX(-50%) scale(0.96); }
-
-        /* 動畫 */
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    </style>
+  <!-- LIFF -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-
-    <!-- Header -->
-    <div class="header-section">
-        <h1 class="header-logo">AM Beauty Studio</h1>
-        <div class="header-sub">專屬補色資格查詢系統</div>
+  <div id="root">
+    <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8d6e63; background-color: #faf9f6;">
+      <div class="spinner"></div>
+      <p id="loading-text" class="mt-4 font-bold tracking-widest text-sm">AM STUDIO</p>
     </div>
+  </div>
 
-    <div class="container">
-        <!-- 查詢卡片 -->
-        <div class="search-card">
-            <div class="search-icon-box">🔍</div>
-            <h2 class="search-title">查詢補色優惠</h2>
-            <p class="search-desc">輸入姓名或電話，立即查看您的專屬方案</p>
-            
-            <div class="input-group">
-                <div class="input-icon">👤</div>
-                <input type="text" id="queryInput" class="search-input" 
-                       placeholder="例如：林小美 或 0912..." 
-                       onkeydown="if(event.key === 'Enter') searchRecord()">
+  <div id="error-box" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; padding:20px; text-align:center;">
+    <div style="max-width:500px; margin:50px auto; border:2px solid #ef4444; padding:20px; background:#fff; border-radius:8px;">
+        <h2 style="color:#ef4444; font-size:24px; margin-bottom:10px;">⚠️ 發生錯誤</h2>
+        <p id="error-msg" style="color:#333; margin-bottom:20px; word-break:break-all;"></p>
+        <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#8d6e63; color:white; border:none; border-radius:4px;">重新整理</button>
+    </div>
+  </div>
+
+  <script>
+    window.onerror = function(msg, url, line) {
+      document.getElementById('root').style.display = 'none';
+      document.getElementById('error-box').style.display = 'block';
+      document.getElementById('error-msg').innerHTML = `<strong>原因：</strong>${msg}<br><br><small>(${url}:${line})</small>`;
+      return false;
+    };
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+    
+    // --- Config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCzCXFgd7VrWHyHrM3GILQ2JHzQaa7yoIw",
+      authDomain: "amstudio-booking.firebaseapp.com",
+      projectId: "amstudio-booking",
+      storageBucket: "amstudio-booking.firebasestorage.app",
+      messagingSenderId: "197698776484",
+      appId: "1:197698776484:web:818beeea66d470bfc36531"
+    };
+    
+    const LIFF_ID = '2008567948-KGMPJPGe'; 
+    const APP_ID = 'booking-system-web';
+    const ADMIN_PIN = '1234';
+    
+    const BANK_INFO = { code: '822', account: '1234-5678-9012', amountPerPerson: 1000 };
+    const LOCATIONS = [{ id: 'tainan', name: '台南工作室' }, { id: 'kaohsiung', name: '高雄工作室' }];
+    
+    // 統一使用 MAIN_CATS
+    const MAIN_CATS = ["霧眉", "霧唇"]; 
+    const SUB_CATS = ["首次", "補色"];
+    const TOUCHUP_SESSIONS = ["第一次回補", "第二次以上"];
+    const DEFAULT_SLOTS = ["11:00", "13:00", "15:00", "17:00", "18:30", "微調時段申請"];
+    
+    const DEFAULT_TEMPLATES = [
+        { title: '預約確認', text: '您好，您的預約已確認！\n時間：{{date}} {{time}}\n地點：{{location}}\n服務：{{service}}\n期待您的光臨。' },
+        { title: '訂金催收', text: '您好，提醒您尚未支付訂金。\n請匯款至：822 (中國信託) 1234-5678-9012\n金額：$1000\n匯款後請至查詢頁面回報，謝謝！' },
+        { title: '已收訂金', text: '您好，已收到您的訂金匯款，預約正式保留。感謝您！' },
+        { title: '預約取消', text: '您好，您的預約已取消。若有需要請再次預約，謝謝。' }
+    ];
+
+    // --- Init Firebase ---
+    let db, auth;
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+    } catch (e) { console.error(e); }
+
+    // --- Icons ---
+    const Icon = ({ name, size=20, className="" }) => {
+        const paths = {
+            check: <polyline points="20 6 9 17 4 12"/>,
+            chevronRight: <path d="m9 18 6-6-6-6"/>,
+            chevronLeft: <path d="m15 18-6-6 6-6"/>,
+            map: <><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>,
+            calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+            clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+            user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+            users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+            settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+            close: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+            plus: <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></>,
+            trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+            search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+            msg: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
+            tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
+            up: <polyline points="18 15 12 9 6 15"/>,
+            down: <polyline points="6 9 12 15 18 9"/>,
+            back: <path d="M19 12H5m7 7l-7-7 7-7"/>,
+            cross: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+            zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>
+        };
+        return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{paths[name]}</svg>;
+    };
+
+    // --- Sub-components ---
+
+    const SelectionSheet = ({ title, isOpen, onClose, children }) => {
+        if (!isOpen) return null;
+        return (
+            <div className="modal-backdrop fade-in" onClick={onClose}>
+                <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-[#4e342e]">{title}</h3>
+                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500"><Icon name="close" size={16}/></button>
+                    </div>
+                    {children}
+                </div>
             </div>
+        );
+    };
 
-            <div class="notice-text">💡 小提醒：建議優先使用「姓名」查詢，資料更準確喔！</div>
-            
-            <button onclick="searchRecord()" id="searchButton" class="btn-search">
-                立即查詢
+    const ServiceSelector = ({ services, onSelect, onCancel }) => {
+        const [stage, setStage] = useState('main'); 
+        const [mainCat, setMainCat] = useState(null);
+        const [subCat, setSubCat] = useState(null);
+        const [session, setSession] = useState(null);
+        const [isDarkLip, setIsDarkLip] = useState(false);
+
+        const sortedServices = useMemo(() => {
+            return [...services].sort((a, b) => (a.order || 999) - (b.order || 999));
+        }, [services]);
+
+        const handleMain = (c) => { setMainCat(c); setStage('sub'); };
+        const handleSub = (t) => { 
+            setSubCat(t); 
+            if(t === '補色') setStage('session');
+            else setStage('confirm');
+        };
+        const handleSession = (s) => { setSession(s); setStage('time'); };
+        
+        const handleTime = (timeRange) => {
+            const target = sortedServices.find(s => 
+                s.category === mainCat && 
+                s.type === subCat && 
+                s.session === session && 
+                s.timeRange === timeRange
+            );
+            if(target) onSelect(target); else alert('查無此時段資料');
+        };
+        const handleConfirmFirst = () => {
+             const target = sortedServices.find(s => s.category === mainCat && s.type === subCat);
+             if(target) {
+                 let finalService = { ...target };
+                 if (mainCat === '霧唇' && isDarkLip) {
+                     finalService.name += ' (含烏唇淡色)';
+                     finalService.price += 1300;
+                     finalService.isDarkLip = true; 
+                 }
+                 onSelect(finalService);
+             } else { alert('查無資料'); }
+        };
+
+        const BackBtn = () => (
+            <button onClick={()=>{
+                if(stage==='confirm') setStage('sub');
+                else if(stage==='time') setStage('session');
+                else if(stage==='session') setStage('sub');
+                else if(stage==='sub') setStage('main');
+                else if(stage==='main') onCancel();
+            }} className="mb-4 text-base text-[#8d6e63] flex items-center gap-2 font-bold px-4 py-2 rounded-lg hover:bg-white bg-[#f4f1ec] border border-[#e7e0da] shadow-sm transition-all hover:translate-y-[-1px]">
+                <Icon name="chevronLeft" size={20}/> {stage==='main' ? '取消' : '返回上一步'}
             </button>
+        );
 
-            <!-- 訊息顯示 -->
-            <div id="messageArea" class="msg-box"></div>
-        </div>
-
-        <!-- 結果顯示區 -->
-        <div id="resultsArea" class="result-container"></div>
-    </div>
-
-    <!-- 預約按鈕 -->
-    <a href="https://liff.line.me/1661306685-kQp9pya4" class="floating-cta">
-        <span>📅 立即預約諮詢</span>
-    </a>
-
-    <!-- JavaScript 邏輯 -->
-    <script>
-        // GAS API (維持不變)
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx6grwl5DidK6DScAaZLM8udp-Pjn_FrB33bv6ES0JkwAiiIx-xxJHicxANVGH7caSpEg/exec"; 
-
-        function searchRecord() {
-            let q = document.getElementById('queryInput').value.trim();
-            if(!q) return showMessage('error', '請輸入姓名或電話');
+        if(stage === 'main') return (
+            <div className="space-y-4 animate-fade-in">
+                <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm text-[#8d6e63] font-bold tracking-wide">請選擇服務項目：</p>
+                    <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 p-2">取消</button>
+                </div>
+                <div className="grid gap-4">
+                    {MAIN_CATS.map(c => (
+                        <button key={c} onClick={()=>handleMain(c)} className="big-card-btn">
+                            <div className="text-3xl mb-2">{c.includes('眉') ? '🤨' : '👄'}</div>
+                            <div className="font-bold text-lg text-[#5d4037]">{c}</div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+        
+        if(stage === 'sub') return (
+            <div className="space-y-3 animate-fade-in">
+                <BackBtn/>
+                <h3 className="font-bold text-xl text-[#4e342e] mb-2 px-1">{mainCat}</h3>
+                <p className="text-sm text-[#8d6e63] px-1 mb-2">請選擇類型：</p>
+                {SUB_CATS.map(t => <button key={t} onClick={()=>handleSub(t)} className="option-btn">{t} <Icon name="chevronRight"/></button>)}
+            </div>
+        );
+        
+        if(stage === 'confirm') {
+            const baseSvc = sortedServices.find(s => s.category === mainCat && s.type === subCat);
+            const basePrice = baseSvc ? baseSvc.price : 0;
+            return (
+                <div className="animate-fade-in">
+                    <BackBtn/>
+                    <h3 className="font-bold mb-4 text-lg text-[#4e342e] px-1">{mainCat} - {subCat}</h3>
+                    {mainCat === '霧唇' && subCat === '首次' && (
+                        <div className="mb-6 p-4 bg-white border-2 border-[#d7ccc8] rounded-2xl shadow-sm cursor-pointer hover:bg-[#fff8f6] transition-colors" onClick={()=>setIsDarkLip(!isDarkLip)}>
+                            <label className="flex items-center gap-4 cursor-pointer pointer-events-none">
+                                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${isDarkLip?'bg-[#8d6e63] border-[#8d6e63]':'bg-white border-gray-400'}`}>
+                                    {isDarkLip && <Icon name="check" className="text-white" size={16}/>}
+                                </div>
+                                <div>
+                                    <div className="font-bold text-[#5d4037] text-lg">👄 需要烏唇/淡色處理？</div>
+                                    <div className="text-sm text-gray-500 mt-1">若唇色較深或暗沈，需先進行淡色處理 (+$1300)</div>
+                                </div>
+                            </label>
+                        </div>
+                    )}
+                    <div className="mb-6 text-center p-6 bg-[#fff8f6] rounded-2xl border border-[#e7e0da]">
+                        <div className="text-sm text-gray-500 mb-1">預估金額</div>
+                        <div className="text-3xl font-bold text-[#8d6e63]">
+                            ${isDarkLip ? basePrice + 1300 : basePrice}
+                        </div>
+                    </div>
+                    <button onClick={handleConfirmFirst} className="w-full bg-[#8d6e63] text-white py-4 rounded-xl shadow-lg font-bold text-lg hover:bg-[#795548] active:scale-[0.98] transition-all">確認選擇此項目</button>
+                </div>
+            )
+        }
+        
+        if(stage === 'session') return (
+            <div className="space-y-3 animate-fade-in text-center">
+                <BackBtn/>
+                <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - 補色</h3>
+                <p className="text-sm text-[#8d6e63] px-1 mb-2">是第幾次補色呢？</p>
+                {TOUCHUP_SESSIONS.map(s => <button key={s} onClick={()=>handleSession(s)} className="option-btn">{s} <Icon name="chevronRight"/></button>)}
+            </div>
+        );
+        
+        if(stage === 'time') {
+            const ranges = sortedServices
+                .filter(s => s.category === mainCat && s.type === '補色' && s.session === session)
+                .map(s => ({ label: s.timeRange, price: s.price }))
+                .filter((v,i,a) => a.findIndex(t => t.label === v.label) === i);
             
-            // 手機號去0邏輯
-            if (/^0\d+/.test(q)) q = q.substring(1);
+            return (
+                <div className="space-y-3 animate-fade-in text-center">
+                    <BackBtn/>
+                    <h3 className="font-bold text-xl text-[#4e342e] px-1">{mainCat} - {session}</h3>
+                    <p className="text-sm text-[#8d6e63] px-1 mb-2">距離上次施作多久了？</p>
+                    {ranges.length > 0 ? ranges.map(r => (
+                        <button key={r.label} onClick={()=>handleTime(r.label)} className="option-btn group">
+                            <span className="font-medium text-lg">{r.label}</span>
+                            <span className="font-bold text-[#8d6e63] bg-[#fff8f6] px-3 py-1 rounded-lg border border-[#e7e0da] group-hover:bg-[#8d6e63] group-hover:text-white transition-all">${r.price}</span>
+                        </button>
+                    )) : <div className="text-gray-400 text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed">尚無此時段的報價資料</div>}
+                </div>
+            );
+        }
+    };
 
-            const btn = document.getElementById('searchButton');
-            const area = document.getElementById('resultsArea');
-            
-            // Loading UI
-            btn.textContent = '資料查詢中...'; 
-            btn.disabled = true; 
-            area.innerHTML = '';
-            document.getElementById('messageArea').style.display = 'none';
+    const StatusCheck = ({ user, onBack }) => { 
+        const [phone, setPhone] = useState('');
+        const [results, setResults] = useState([]);
+        const [loading, setLoading] = useState(false);
+        const [reportId, setReportId] = useState(null);
+        const [last5, setLast5] = useState('');
+        const search = async () => {
+            if(!phone) return alert("請輸入電話號碼");
+            setLoading(true);
+            try {
+                const snap = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').where('customerPhone', '==', phone).get();
+                if (snap.empty) { alert("查無此電話的預約資料"); setResults([]); }
+                else { const data = snap.docs.map(d=>({id:d.id, ...d.data()})); data.sort((a,b) => new Date(b.date) - new Date(a.date)); setResults(data); }
+            } catch(e) { alert("查詢錯誤: " + e.message); }
+            setLoading(false);
+        };
+        const submitPayment = async () => {
+            if(!last5) return alert('請輸入後五碼');
+            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc(reportId).update({ paymentStatus: 'reported', paymentInfo: { last5, at: new Date().toISOString() } });
+            alert('回報成功！等待店家確認。'); setReportId(null); search();
+        };
+        return (
+            <div className="min-h-screen bg-[#faf9f6] p-4">
+                <div className="app-card mb-6">
+                    <h2 className="font-bold text-xl mb-4 text-[#4e342e]">預約查詢 / 匯款回報</h2>
+                    <div className="flex gap-2"><input className="flex-1 p-3 border border-[#d7ccc8] rounded-xl outline-none" placeholder="預約電話" value={phone} onChange={e=>setPhone(e.target.value)} /><button onClick={search} className="bg-[#8d6e63] text-white px-6 rounded-xl font-bold">{loading?'...':'查詢'}</button></div>
+                </div>
+                <div className="space-y-4">{results.map(r => (<div key={r.id} className="app-card"><div className="flex justify-between mb-3"><span className="font-bold text-lg text-[#8d6e63]">{r.date} {r.time}</span><span className={`text-xs px-3 py-1 rounded-full font-bold ${r.status==='confirmed'?'bg-green-100 text-green-700':r.status==='cancelled'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{r.status==='confirmed'?'✅ 成功':r.status==='cancelled'?'❌ 取消':'⏳ 待確認'}</span></div><div className="text-base text-gray-700 mb-3">{r.serviceName} {r.guestIndex && `(第${r.guestIndex}位)`}</div><div className="text-sm font-bold text-[#5d4037] mb-3 bg-[#fdfbf7] p-2 rounded-lg inline-block">訂金：${BANK_INFO.amountPerPerson}</div><div className="border-t border-[#f3f4f6] pt-3 flex justify-between items-center mt-2"><span className="text-sm text-gray-500 font-medium">狀態：{r.paymentStatus==='verified' ? <span className="text-green-600 font-bold">已入帳</span> : r.paymentStatus==='reported' ? <span className="text-blue-600 font-bold">審核中</span> : <span className="text-red-500">未支付</span>}</span>{r.paymentStatus === 'unpaid' && r.status !== 'cancelled' && (<button onClick={()=>setReportId(r.id)} className="text-sm bg-[#8d6e63] text-white px-4 py-2 rounded-lg">回報</button>)}</div>{reportId === r.id && (<div className="mt-4 bg-[#fdfbf7] p-4 rounded-xl flex gap-2 border border-[#d7ccc8]"><input className="flex-1 p-2 border border-[#d7ccc8] rounded-lg text-sm bg-white" placeholder="帳號後五碼" value={last5} onChange={e=>setLast5(e.target.value)} /><button onClick={submitPayment} className="bg-blue-600 text-white px-4 text-sm rounded-lg font-bold">送出</button><button onClick={()=>setReportId(null)} className="text-gray-400 text-sm px-2">取消</button></div>)}</div>))}</div>
+                <button onClick={onBack} className="mt-8 w-full py-4 text-gray-400 text-sm font-bold hover:text-[#8d6e63]">返回首頁</button>
+            </div>
+        )
+    };
 
-            fetch(`${GAS_API_URL}?q=${encodeURIComponent(q)}`)
-                .then(response => response.json())
-                .then(res => {
-                    if (res.data && res.data.length > 0) {
-                        
-                        // 1. 排序 (日期新到舊)
-                        const sortedData = res.data.sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate));
-                        
-                        // 2. 過濾重複 (只留該項目最新一筆)
-                        const uniqueData = [];
-                        const seenServices = new Set(); 
+    const GuestSection = ({ index, guest, services, addons, discounts, onUpdate, onRemove, showRemove }) => {
+        const [showSelector, setShowSelector] = useState(false);
+        const toggleAddon = (ad) => {
+            const has = guest.addons.find(a=>a.id===ad.id);
+            const newAdds = has ? guest.addons.filter(a=>a.id!==ad.id) : [...guest.addons, ad];
+            onUpdate('addons', newAdds);
+        };
+        const removeService = (sId) => {
+            const newSvcs = guest.services.filter(s => s.id !== sId);
+            onUpdate('services', newSvcs);
+        };
 
-                        sortedData.forEach(item => {
-                            const key = `${item.name}_${item.service}`;
-                            if (!seenServices.has(key)) {
-                                uniqueData.push(item);
-                                seenServices.add(key);
+        return (
+            <div className="guest-block">
+                <div className="flex justify-between items-center mb-6">
+                    <span className="bg-[#4e342e] text-white text-sm px-4 py-1 rounded-full font-bold">第 {index + 1} 位</span>
+                    {showRemove && <button onClick={onRemove} className="text-red-400 p-2"><Icon name="trash" size={20}/></button>}
+                </div>
+
+                {guest.services.length > 0 && (
+                    <div className="space-y-3 mb-6">
+                        {guest.services.map(s => (
+                            <div key={s.id} className="bg-white p-5 rounded-2xl border border-[#d7ccc8] shadow-sm flex justify-between items-center relative overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#8d6e63]"></div>
+                                <div className="pl-2">
+                                    <div className="font-bold text-[#4e342e] text-lg mb-1">{s.name}</div>
+                                    <div className="text-sm text-gray-500 font-bold">${s.price}</div>
+                                </div>
+                                <button onClick={()=>removeService(s.id)} className="text-red-400 p-3 bg-[#faf9f6] rounded-full"><Icon name="trash" size={18}/></button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 虛線框大按鈕 */}
+                <button onClick={()=>setShowSelector(true)} className="dashed-btn">
+                    <Icon name="plus"/> {guest.services.length > 0 ? '再加一項服務' : '選擇服務項目'}
+                </button>
+                
+                {/* Selector Modal */}
+                <SelectionSheet title="選擇服務項目" isOpen={showSelector} onClose={() => setShowSelector(false)}>
+                    <ServiceSelector 
+                        services={services} 
+                        onSelect={(s) => { 
+                            let newSvcs = [...guest.services];
+                            if(s.type === '補色') newSvcs = [s];
+                            else {
+                                if(newSvcs.length > 0 && newSvcs[0].type === '補色') newSvcs = [];
+                                if(!newSvcs.find(item=>item.id===s.id)) newSvcs.push(s);
                             }
-                        });
+                            onUpdate('services', newSvcs);
+                            setShowSelector(false);
+                        }} 
+                        onCancel={()=>setShowSelector(false)} 
+                    />
+                </SelectionSheet>
 
-                        if(uniqueData.length > 0) {
-                            showMessage('success', `🎉 查詢成功！找到 ${uniqueData.length} 筆資料`);
-                            area.innerHTML = uniqueData.map((r, i) => createCard(r, i)).join('');
-                        } else {
-                            showMessage('error', '查無相關資料');
-                        }
-                        
-                    } else {
-                        showMessage('error', '查無資料，請確認輸入是否正確 (或是嘗試用姓名查詢)');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    showMessage('error', '系統連線失敗，請稍後再試');
-                })
-                .finally(() => {
-                    btn.textContent = '立即查詢'; 
-                    btn.disabled = false;
-                });
-        }
-
-        function showMessage(type, text) {
-            const el = document.getElementById('messageArea');
-            el.textContent = text;
-            el.className = `msg-box ${type === 'error' ? 'msg-error' : 'msg-success'}`;
-            el.style.display = 'block';
-        }
-
-        function createCard(r, i) { 
-            const cid = `card-${i}`; 
-            const ranges = (r.touchUpRanges||[]).map(t => 
-                `<div class="flex justify-between py-3 border-b border-gray-100 text-sm last:border-0">
-                    <span class="text-gray-600">${t.dateRange}</span>
-                    <span class="font-bold text-gray-800">${t.price===0?'免費':'$'+t.price}</span>
-                </div>`
-            ).join(''); 
-            
-            return `
-            <div class="result-card">
-                <div class="result-header">
-                    <div>
-                        <div class="result-name">${r.name}</div>
-                        <span class="text-gray-400 text-sm">(${maskPhoneNumber(r.phone)})</span>
+                {addons.length > 0 && (
+                    <div className="mb-6">
+                         <label className="text-sm font-bold text-[#8d6e63] mb-3 block">加購項目 (可複選)</label>
+                         <div className="grid grid-cols-2 gap-3">
+                             {addons.map(ad => {
+                                 const isChecked = guest.addons.some(a => a.id === ad.id);
+                                 return (
+                                     <button key={ad.id} onClick={() => toggleAddon(ad)} className={`p-4 rounded-2xl border text-sm text-center transition-all ${isChecked ? 'bg-[#8d6e63] text-white border-[#8d6e63] font-bold shadow-md' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                         <div className="text-lg mb-1">{ad.name}</div>
+                                         <div className="text-xs opacity-80">{ad.price>0?'+':''}{ad.price}</div>
+                                     </button>
+                                 );
+                             })}
+                         </div>
                     </div>
-                </div>
+                )}
                 
-                <div class="info-badges">
-                    <div class="info-badge">
-                        <span class="info-label">上次日期</span>
-                        <span class="info-value">${r.lastDate||'-'}</span>
-                    </div>
-                    <div class="info-badge">
-                        <span class="info-label">上次項目</span>
-                        <span class="info-value highlight">${r.service}</span>
-                    </div>
-                </div>
-
-                ${r.specialReminder ? 
-                    `<div class="bg-yellow-50 text-yellow-800 p-3 rounded-xl text-sm mb-4 font-medium flex items-start gap-2">
-                        <span>💡</span><span>${r.specialReminder}</span>
-                     </div>` : ''
-                } 
-                
-                ${getPriceCardHtml(r.currentPriceInfo, r.eyebrowDiscountDate && !checkIsExpired(r.eyebrowDiscountDate))} 
-                
-                <div style="margin-top:20px;">
-                    <button onclick="toggleCollapse('${cid}', this)" 
-                            style="width:100%; padding:12px; background:#F9F8F6; color:#888; border:none; border-radius:12px; font-size:0.9rem; font-weight:600; cursor:pointer; transition:0.2s;">
-                        查看完整價目表 ▼
-                    </button>
-                    <div id="${cid}" class="collapsible-content bg-gray-50 px-4 mt-2 rounded-xl">
-                        <div class="py-3">${ranges}</div>
-                    </div>
-                </div>
-            </div>`; 
-        }
-
-        function getPriceCardHtml(info, useOrange) { 
-            if (!info) return ''; 
-            let p = info.price===0 ? '免費' : (info.price ? `NT$ ${info.price}` : '洽詢'); 
-            let bg = info.price===0 ? 'bg-green-600' : (useOrange ? 'bg-orange-500' : 'bg-pink-500'); 
-            let theme = info.price===0 ? 'bg-green-50 border-green-200' : (useOrange ? 'bg-orange-50 border-orange-200' : 'bg-pink-50 border-pink-200'); 
-            let dateText = (info.dateRange || '').replace(/【.*?】/g, '');
-            
-            return `
-            <div class="price-box border ${theme}">
                 <div>
-                    <h3 class="text-xs font-bold text-gray-400 mb-1">目前補色價格</h3>
-                    <p class="text-lg font-bold text-gray-800 tracking-wide">${dateText}</p>
+                    <label className="text-sm font-bold text-[#8d6e63] block mb-2 flex items-center gap-2"><Icon name="tag" size={16}/> 優惠身份</label>
+                    <select className="w-full p-4 rounded-xl border border-gray-200 bg-white text-base focus:ring-1 focus:ring-[#8d6e63] outline-none shadow-sm"
+                        value={guest.discount?.id || ''}
+                        onChange={e => onUpdate('discount', e.target.value)}
+                    >
+                        <option value="">無 (原價)</option>
+                        {discounts.filter(d => {
+                            const hasTouchup = guest.services.some(s => s.type === '補色');
+                            return hasTouchup ? d.name.includes('壽星') : true;
+                        }).map(d => <option key={d.id} value={d.id}>{d.name} (-${d.amount})</option>)}
+                    </select>
                 </div>
-                <span class="px-4 py-2 text-white text-xl font-bold rounded-xl ${bg} shadow-md">${p}</span>
-            </div>`; 
-        }
+            </div>
+        );
+    };
 
-        function checkIsExpired(d) { if(!d)return false; return new Date() > new Date(d); }
-        function maskPhoneNumber(p) { if(!p)return''; let s=String(p).replace(/'/g,'').trim(); return s.length<8?s:s.substring(0,4)+'***'+s.substring(s.length-3); }
-        function toggleCollapse(id, btn) { 
-            const el = document.getElementById(id); 
-            el.classList.toggle('expanded'); 
-            btn.textContent = el.classList.contains('expanded') ? '收起完整價目表 ▲' : '查看完整價目表 ▼'; 
-            btn.style.background = el.classList.contains('expanded') ? '#eee' : '#F9F8F6';
-        }
-    </script>
+    const AdminLogin = ({ onBack, onLogin }) => {
+        const [pin, setPin] = useState('');
+        return <div className="min-h-screen flex items-center justify-center bg-[#faf9f6] p-6"><div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-sm text-center border border-[#e7e0da]"><h2 className="text-xl font-bold mb-6 text-[#4e342e]">後台登入</h2><input type="password" placeholder="PIN" className="w-full p-4 bg-[#fdfbf7] rounded-xl mb-6 text-center text-xl tracking-widest border border-[#d7ccc8] focus:border-[#8d6e63] outline-none" value={pin} onChange={e=>setPin(e.target.value)} /><div className="flex gap-3"><button onClick={onBack} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-500">取消</button><button onClick={()=>pin===ADMIN_PIN?onLogin():alert('密碼錯誤')} className="flex-1 py-3 rounded-xl bg-[#8d6e63] text-white font-bold shadow-md">登入</button></div></div></div>;
+    }
+
+    const AdminPanel = ({ user, settings, onBack, services }) => { 
+        const [tab, setTab] = useState('cal');
+        const [books, setBooks] = useState([]);
+        const [calDate, setCalDate] = useState(new Date());
+        const [calSelected, setCalSelected] = useState(null);
+
+        useEffect(() => {
+            db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings')
+              .orderBy('date', 'desc').limit(100).onSnapshot(s => setBooks(s.docs.map(d=>({id:d.id, ...d.data()}))));
+        }, []);
+
+        const renderCalendar = () => {
+            const y = calDate.getFullYear(); const m = calDate.getMonth(); const days = new Date(y, m+1, 0).getDate(); const start = new Date(y, m, 1).getDay();
+            const bookMap = {}; books.forEach(b => { if(b.status!=='cancelled'){ if(!bookMap[b.date]) bookMap[b.date]={hasPending:false}; if(b.status==='pending') bookMap[b.date].hasPending=true; }});
+            return (
+                <div className="bg-white p-4 rounded-3xl border shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <button onClick={()=>setCalDate(new Date(y, m-1))} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">&lt;</button>
+                        <span className="font-bold text-lg text-[#4e342e]">{y}年 {m+1}月</span>
+                        <button onClick={()=>setCalDate(new Date(y, m+1))} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">&gt;</button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">{['日','一','二','三','四','五','六'].map(d=><div key={d} className="text-gray-400">{d}</div>)}</div>
+                    <div className="grid grid-cols-7 gap-1">
+                        {Array.from({length:start}).map((_,i)=><div key={'e'+i}/>)}
+                        {Array.from({length:days}).map((_,i)=>{
+                            const d=i+1; const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                            const info = bookMap[dStr]; const isSel = calSelected === dStr;
+                            return (
+                                <div key={d} onClick={()=>setCalSelected(dStr)} className={`date-cell ${isSel?'selected':''} ${!isSel && 'hover:bg-gray-50'}`}>
+                                    <span className={isSel?'text-white':'text-gray-700'}>{d}</span>
+                                    {info && <div className={`dot mt-1 ${info.hasPending?'yellow':'green'}`}></div>}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )
+        };
+
+        return (
+            <div className="min-h-screen bg-gray-50 p-4 pb-24">
+                <div className="bg-white p-4 sticky top-0 border-b flex justify-between items-center shadow-sm mb-4 rounded-b-2xl z-20"><h2 className="font-bold text-[#5d4037]">後台管理</h2><button onClick={onBack} className="text-xs bg-gray-100 px-3 py-1.5 rounded-full">登出</button></div>
+                {renderCalendar()}
+                {calSelected && <div className="space-y-3 mt-4"><h3 className="font-bold text-xl text-[#5d4037] ml-2 mb-4">{calSelected} 預約</h3>{books.filter(b=>b.date===calSelected).length===0?<p className="text-center text-gray-400 py-10 bg-white rounded-3xl border border-dashed">今日無預約</p>:books.filter(b=>b.date===calSelected).map(b=>(<div key={b.id} className="app-card text-sm relative overflow-hidden"><div className="absolute left-0 top-0 bottom-0 w-2 bg-[#8d6e63]"></div><div className="pl-4"><div className="flex justify-between font-bold text-lg mb-1"><span>{b.time}</span><span>{b.customerName}</span></div><div className="text-gray-500">{b.serviceName}</div></div></div>))}</div>}
+            </div>
+        )
+    };
+
+    // --- Main App ---
+    function App() {
+        const [user, setUser] = useState(null);
+        const [page, setPage] = useState('home');
+        const [step, setStep] = useState(1);
+        const [loc, setLoc] = useState(null);
+        const [guests, setGuests] = useState([{ id: 1, services: [], addons: [], discount: null }]);
+        const [isMulti, setIsMulti] = useState(false);
+        const [date, setDate] = useState(new Date());
+        const [time, setTime] = useState(null);
+        const [customTime, setCustomTime] = useState('');
+        const [info, setInfo] = useState({name:'', phone:'', notes:''});
+        const [services, setServices] = useState([]);
+        const [addons, setAddons] = useState([]);
+        const [discounts, setDiscounts] = useState([]);
+        const [settings, setSettings] = useState({});
+        const [booked, setBooked] = useState([]);
+
+        useEffect(() => { auth.signInAnonymously().catch(console.error); if(window.liff) window.liff.init({liffId:LIFF_ID}); return auth.onAuthStateChanged(setUser); }, []);
+        useEffect(() => { if(!user) return; const pub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data'); pub.collection('services').onSnapshot(s=>setServices(s.docs.map(d=>({id:d.id,...d.data()})))); pub.collection('addons').onSnapshot(s=>setAddons(s.docs.map(d=>({id:d.id,...d.data()})))); pub.collection('discounts').onSnapshot(s=>setDiscounts(s.docs.map(d=>({id:d.id,...d.data()})))); pub.collection('settings').onSnapshot(s=>{const o={};s.forEach(d=>o[d.id]=d.data());setSettings(o)}); }, [user]);
+        useEffect(() => { if(!loc) return; const dStr=date.toISOString().split('T')[0]; db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').where('locationId','==',loc.id).where('date','==',dStr).onSnapshot(s=>setBooked(s.docs.map(d=>d.data().time))); }, [loc,date]);
+
+        const handleGuestUpdate = (idx, type, val) => { const ng = [...guests]; if(type==='services') ng[idx].services=val; if(type==='discount') ng[idx].discount=discounts.find(d=>d.id===val)||null; if(type==='addons') ng[idx].addons=val; setGuests(ng); };
+        const calculateTotal = () => {
+            let total = 0;
+            guests.forEach(g => {
+                g.services.forEach(s => total += s.price);
+                g.addons.forEach(a => total += a.price);
+                if (g.discount) {
+                     if (g.services.some(s=>s.type==='補色')) { if(g.discount.name.includes('壽星')) total-=100; }
+                     else total-=g.discount.amount;
+                }
+            });
+            if (isMulti && guests.length >= 2) { guests.forEach(g => { if(!g.services.some(s=>s.type==='補色')) total-=200; }); }
+            return total;
+        };
+
+        const handleSubmit = async () => {
+            const batch = db.batch(); const dStr=date.toISOString().split('T')[0]; const tVal=time==='微調時段申請'?`微調 ${customTime}`:time; const gId=Date.now().toString();
+            let msgDetails = "";
+            guests.forEach((g, i) => {
+                 const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bookings').doc();
+                 const svcStr = g.services.map(s=>s.name).join('+');
+                 msgDetails += `👤 ${i+1}: ${svcStr}\n`;
+                 batch.set(ref, { locationId:loc.id, locationName:loc.name, serviceId:g.services.map(s=>s.id), serviceName:svcStr, addons:g.addons, date:dStr, time:tVal, customerName:info.name+(guests.length>1?`(${i+1})`:''), customerPhone:info.phone, notes:info.notes, discountIdentity:g.discount?.name||'', groupId:gId, guestIndex:i+1, totalPrice:calculateTotal(), status:'pending', paymentStatus:'unpaid', createdAt:firebase.firestore.FieldValue.serverTimestamp(), userId:user.uid });
+            });
+            await batch.commit();
+            const msg = `【預約申請】\n📍 ${loc.name}\n📅 ${dStr} ${tVal}\n${msgDetails}💰 總額：${calculateTotal()}\n⚠️ 訂金：${guests.length*1000}\n\n🔗 回報：https://liff.line.me/${LIFF_ID}?p=check`;
+            if(window.liff?.isInClient()) window.liff.sendMessages([{type:'text', text:msg}]).catch(()=>{}); else alert("預約送出！\n請複製連結回報：\nhttps://liff.line.me/"+LIFF_ID+"?p=check");
+            setStep(4);
+        };
+
+        if(page==='admin-login') return <AdminLogin onBack={()=>setPage('home')} onLogin={()=>setPage('admin')}/>;
+        if(page==='admin') return <AdminPanel user={user} settings={settings} onBack={()=>setPage('home')} services={services}/>;
+        if(page==='check-status') return <StatusCheck user={user} onBack={()=>setPage('home')}/>;
+
+        if(!loc) return (
+            <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-[#faf9f6]">
+                <div className="absolute top-6 left-6"><button onClick={()=>setPage('admin-login')} className="text-gray-300 p-2"><Icon name="settings"/></button></div>
+                <div className="w-full max-w-sm space-y-8 text-center">
+                    <div className="mb-10"><h1 className="text-3xl font-bold text-[#5d4037] tracking-widest mb-1">AM Studio</h1><p className="text-xs text-[#8d6e63] tracking-[0.2em]">PROFESSIONAL BEAUTY</p></div>
+                    <div className="space-y-4">
+                        {LOCATIONS.map(l => (
+                            <button key={l.id} onClick={() => setLoc(l)} className="location-btn group">
+                                <div className="bg-[#fdfbf7] p-4 rounded-full text-[#8d6e63] group-hover:bg-[#8d6e63] group-hover:text-white transition-colors"><Icon name="map" size={28}/></div>
+                                <div className="font-bold text-lg text-[#5d4037]">{l.name}</div>
+                                <div className="text-xs text-gray-400 tracking-wider">點擊開始預約</div>
+                            </button>
+                        ))}
+                        <button onClick={()=>setPage('check-status')} className="w-full py-4 border border-[#e7e0da] rounded-3xl text-gray-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-white hover:shadow-sm transition-all"><Icon name="search" size={16}/> 查詢預約</button>
+                    </div>
+                </div>
+            </div>
+        )
+
+        return (
+            <div className="min-h-screen pb-24">
+                <div className="sticky top-0 bg-white/90 backdrop-blur-md p-4 z-20 flex items-center justify-between border-b border-gray-100">
+                    <button onClick={()=>{ if(step===1) setLoc(null); else setStep(s=>s-1); }} className="p-2 text-[#8d6e63]"><Icon name="chevronLeft"/></button>
+                    <span className="font-bold text-[#5d4037]">預約流程</span>
+                    <div className="w-8"></div>
+                </div>
+                <div className="p-4 space-y-6 max-w-md mx-auto">
+                    {step === 1 && (
+                        <div className="fade-in">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-[#5d4037]">選擇服務</h2>
+                                <div className="flex bg-white p-1 rounded-lg border border-gray-200">
+                                    <button onClick={()=>{setIsMulti(false); setGuests([guests[0]]);}} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!isMulti?'bg-[#5d4037] text-white shadow-md':'text-gray-400'}`}>單人</button>
+                                    <button onClick={()=>{setIsMulti(true); if(guests.length<2) setGuests([...guests, {id:Date.now(), services:[], addons:[]}]);}} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${isMulti?'bg-[#5d4037] text-white shadow-md':'text-gray-400'}`}>同行</button>
+                                </div>
+                            </div>
+                            {guests.map((g, i) => (
+                                <GuestSection key={g.id} index={i} guest={g} services={services} addons={addons} discounts={discounts}
+                                    onUpdate={(type, val) => handleGuestUpdate(i, type, val)}
+                                    showRemove={isMulti && i > 0} onRemove={() => { const ng = [...guests]; ng.splice(i, 1); setGuests(ng); }}
+                                />
+                            ))}
+                            {isMulti && (
+                                <button onClick={() => setGuests([...guests, { id: Date.now(), services: [], addons: [], discount: null }])} 
+                                    className="solid-btn">
+                                    <Icon name="plus"/> 新增一位同伴 (多人同行)
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    {step === 2 && (
+                        <div className="fade-in space-y-6">
+                            <div className="app-card">
+                                <div className="flex justify-between items-center mb-6">
+                                    <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()-1))}><Icon name="chevronLeft"/></button>
+                                    <span className="font-bold text-lg">{date.getFullYear()}年 {date.getMonth()+1}月</span>
+                                    <button onClick={()=>setDate(new Date(date.getFullYear(), date.getMonth()+1))}><Icon name="chevronRight"/></button>
+                                </div>
+                                <div className="grid grid-cols-7 gap-2 text-center text-xs text-gray-400 mb-2">{['日','一','二','三','四','五','六'].map(d=><span key={d}>{d}</span>)}</div>
+                                <div className="grid grid-cols-7 gap-2">{Array.from({length: new Date(date.getFullYear(), date.getMonth(), 1).getDay()}).map((_,i)=><div key={'e'+i}/>)}{Array.from({length: new Date(date.getFullYear(), date.getMonth()+1, 0).getDate()}).map((_,i)=>{const d = i+1; const curr = new Date(date.getFullYear(), date.getMonth(), d); const dStr = curr.toISOString().split('T')[0]; const conf = settings[loc.id]; const isOpen = conf?.allowedDates?.includes(dStr); const isSel = d === date.getDate(); return <button key={d} disabled={!isOpen} onClick={() => { setDate(curr); setTime(null); }} className={`h-9 w-9 rounded-lg text-sm flex items-center justify-center font-bold transition-all ${isSel ? 'bg-[#8d6e63] text-white shadow-md' : !isOpen ? 'text-gray-200' : 'hover:bg-gray-50 text-gray-700'}`}>{d}</button>})}</div>
+                            </div>
+                            <h3 className="font-bold text-[#5d4037] mb-2 flex items-center gap-2"><Icon name="clock"/> 選擇時段</h3>
+                            <div className="grid grid-cols-3 gap-3">{DEFAULT_SLOTS.map(t => {const dStr = date.toISOString().split('T')[0]; const conf = settings[loc.id]; const slots = (conf?.specialRules && conf.specialRules[dStr]) || (conf?.timeSlots || DEFAULT_SLOTS); if(!slots.includes(t)) return null; const isBooked = booked.includes(t); return (<button key={t} disabled={isBooked} onClick={() => { setTime(t); setCustomTime(''); }} className={`time-chip ${time === t ? 'active' : ''} ${isBooked ? 'disabled' : ''}`}>{t} {isBooked && <span className="block text-[10px] font-normal">已滿</span>}</button>);})}</div>
+                            {time === '微調時段申請' && <div className="fade-in bg-white border border-[#d7ccc8] p-4 rounded-xl"><label className="text-xs font-bold text-[#8d6e63] mb-1 block">輸入希望時間</label><input type="time" className="w-full text-xl font-bold bg-transparent outline-none text-center" value={customTime} onChange={e=>setCustomTime(e.target.value)} /></div>}
+                        </div>
+                    )}
+                    {step === 3 && (
+                        <div className="fade-in space-y-4">
+                            <div className="app-card space-y-4"><div><label className="text-xs font-bold text-gray-400 ml-1">聯絡姓名</label><input className="w-full p-4 bg-[#FAFAFA] rounded-xl border-none font-bold text-[#5d4037] focus:ring-1 focus:ring-[#C4A48C]" placeholder="真實姓名" value={info.name} onChange={e=>setInfo({...info, name:e.target.value})}/></div><div><label className="text-xs font-bold text-gray-400 ml-1">電話</label><input type="tel" className="w-full p-4 bg-[#FAFAFA] rounded-xl border-none font-bold text-[#5d4037] focus:ring-1 focus:ring-[#C4A48C]" placeholder="09xx-xxx-xxx" value={info.phone} onChange={e=>setInfo({...info, phone:e.target.value})}/></div><div><label className="text-xs font-bold text-gray-400 ml-1">備註</label><textarea className="w-full p-4 bg-[#FAFAFA] rounded-xl border-none text-[#5d4037] focus:ring-1 focus:ring-[#C4A48C] h-24 resize-none" placeholder="注意事項..." value={info.notes} onChange={e=>setInfo({...info, notes:e.target.value})}/></div></div>
+                            <div className="bg-[#FFFBF9] p-5 rounded-2xl border border-[#EBE0D9] space-y-3"><h3 className="font-bold text-[#5D4037]">訂金資訊</h3><div className="flex justify-between text-sm"><span>銀行</span><span className="font-bold">{BANK_INFO.code}</span></div><div className="flex justify-between text-sm"><span>帳號</span><span className="font-bold tracking-widest">{BANK_INFO.account}</span></div><div className="flex justify-between text-sm border-t border-dashed border-[#D7CCC8] pt-2 mt-2"><span>應付訂金</span><span className="text-red-500 font-bold text-lg">${guests.length * BANK_INFO.amountPerPerson}</span></div></div>
+                            <label className="flex items-center gap-2 justify-center py-2"><input type="checkbox" id="agree" className="w-5 h-5 accent-[#8D6E63]"/> <span className="text-sm font-bold text-[#8D6E63]">我同意支付訂金規則</span></label>
+                        </div>
+                    )}
+                    {step === 4 && (
+                        <div className="text-center pt-10 fade-in"><div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 shadow-sm"><Icon name="check" size={48}/></div><h2 className="text-3xl font-bold mb-3 text-[#5d4037]">預約成功！</h2><p className="text-gray-500 mb-8">請記得匯款並回報。</p><button onClick={()=>window.location.reload()} className="w-full bg-[#8d6e63] text-white py-4 rounded-2xl font-bold shadow-lg">返回首頁</button></div>
+                    )}
+                </div>
+                {step < 4 && (
+                    <div className="sticky-footer">
+                        <div className="flex-1"><div className="text-xs opacity-70 mb-1">預估總額</div><div className="text-2xl font-bold">${calculateTotal()}</div></div>
+                        <button onClick={()=>{ if(step===1 && guests.some(g=>g.services.length===0)) return alert('請選擇服務'); if(step===2 && !time) return alert('請選擇時間'); if(step===3 && (!info.name || !info.phone)) return alert('請填寫資料'); if(step===3 && !document.getElementById('agree').checked) return alert('請同意規則'); if(step===3) handleSubmit(); else setStep(s=>s+1); }} className="bg-[#2c2c2c] text-white px-10 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">{step===3?'送出':'下一步'}</button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
 </body>
 </html>
